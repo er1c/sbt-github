@@ -1,3 +1,9 @@
+# sbt-github
+
+WIP - forking/refactoring `sbt-bintray` for GitHub support
+
+------
+
 # sbt-bintray [![scaladex-badge][]][scaladex] [![travis-badge][]][travis] [![gitter-badge][]][gitter]
 
 [scaladex]:       https://index.scala-lang.org/sbt/sbt-bintray

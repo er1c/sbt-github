@@ -6,6 +6,8 @@ import scala.util.Try
 import scala.collection.concurrent.TrieMap
 
 object GitHub {
+  import GitHubResolverSyntax._
+
   val defaultMavenRepository = "maven"
   // http://www.scala-sbt.org/0.13/docs/GitHub-For-Plugins.html
   val defaultSbtPluginRepository = "sbt-plugins"

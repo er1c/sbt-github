@@ -1,4 +1,4 @@
-package sbtgithubremotecache
+package github
 
 import sbt._
 

@@ -1,14 +1,13 @@
-package sbtgithubremotecache
+package github
 
 import sbt._
 import Keys._
-import github._
 
 object GitHubRemoteCachePlugin extends AutoPlugin {
   override def requires = sbt.plugins.JvmPlugin
   override def trigger = allRequirements
 
-  object autoImport extends GitHubRemoteCacheKeys
+  object autoImport extends GitHubRemoteCacheKeys with GitHubResolverSyntax
   import autoImport._
 
   override lazy val globalSettings: Seq[Setting[_]] = Seq(

@@ -24,8 +24,7 @@ object GitHubPlugin extends AutoPlugin {
     case _ => false
   }
 
-  object autoImport extends GitHubKeys {
-  }
+  object autoImport extends GitHubKeys with GitHubResolverSyntax
 
   lazy val Git = Tags.Tag("git")
 
