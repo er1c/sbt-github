@@ -4,7 +4,7 @@ ThisBuild / organization := "org.foundweekends"
 ThisBuild / homepage     := Some(url("https://github.com/sbt/sbt-bintray"))
 ThisBuild / licenses     := Seq("MIT" ->
   url(s"https://github.com/sbt/${name.value}/blob/${version.value}/LICENSE"))
-ThisBuild / description  := "package publisher for bintray.com"
+ThisBuild / description  := "package publisher for github.com"
 ThisBuild / developers   := List(
   Developer("softprops", "Doug Tangren", "@softprops", url("https://github.com/softprops"))
 )
@@ -19,13 +19,13 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     publishArtifact in Test := false,
     bintrayRepository := "sbt-plugin-releases",
     bintrayOrganization := Some("sbt"),
-    bintrayPackage := "sbt-bintray",
+    bintrayPackage := "sbt-github",
     scriptedBufferLog := true,
     scriptedLaunchOpts ++= Seq(
       "-Xmx1024M",
       "-XX:MaxPermSize=256M",
-      "-Dbintray.user=username",
-      "-Dbintray.pass=password",
+      "-Dgithub.user=username",
+      "-Dgithub.pass=password",
       "-Dplugin.version=" + version.value
     ),
   ) ++ Seq(Compile, Test).flatMap(c =>
@@ -33,7 +33,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   )
 
 lazy val root = (project in file("."))
-  .aggregate(core, sbtBintray, sbtBintrayRemoteCache)
+  .aggregate(core, sbtGitHub, sbtGitHubRemoteCache)
   .settings(
     publish / skip := true,
   )
@@ -42,7 +42,7 @@ lazy val core = (project in file("core"))
   .enablePlugins(SbtPlugin)
   .settings(commonSettings)
   .settings(
-    name := "sbt-bintray-core",
+    name := "sbt-github-core",
     libraryDependencies ++= Seq(
       "org.foundweekends" %% "bintry" % "0.6.0",
       "org.slf4j" % "slf4j-nop" % "1.7.28", // https://github.com/sbt/sbt-bintray/issues/26
@@ -52,20 +52,20 @@ lazy val core = (project in file("core"))
     resolvers += Resolver.sonatypeRepo("releases"),
   )
 
-lazy val sbtBintray = (project in file("sbt-bintray"))
+lazy val sbtGitHub = (project in file("sbt-github"))
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
   .settings(commonSettings)
   .settings(
-    name := "sbt-bintray",
+    name := "sbt-github",
     pluginCrossBuild / sbtVersion := "1.0.0",
   )
 
-lazy val sbtBintrayRemoteCache = (project in file("sbt-bintray-remote-cache"))
+lazy val sbtGitHubRemoteCache = (project in file("sbt-github-remote-cache"))
   .enablePlugins(SbtPlugin)
   .dependsOn(core)
   .settings(commonSettings)
   .settings(
-    name := "sbt-bintray-remote-cache",
+    name := "sbt-github-remote-cache",
     pluginCrossBuild / sbtVersion := "1.4.2",
   )

@@ -1,14 +1,14 @@
-package bintray
+package github
 
 import sbt.IO
 import java.io.File
 
-case class BintrayCredentials(
+case class GitHubCredentials(
   user: String, password: String) {
-  override def toString = s"BintrayCredentials($user, ${"x"*password.size})"
+  override def toString = s"GitHubCredentials($user, ${"x"*password.size})"
 }
 
-object BintrayCredentials {
+object GitHubCredentials {
 
   val Keys = Seq("realm", "host", "user", "password")
   def templateSrc(realm: String, host: String)(
@@ -18,12 +18,12 @@ object BintrayCredentials {
        |user = $name
        |password = $password""".stripMargin
 
-  /** bintray api */
+  /** github api */
   object api {
-    def toDirect(bc: BintrayCredentials) =
+    def toDirect(bc: GitHubCredentials) =
       sbt.Credentials(Realm, Host, bc.user, bc.password)
-    val Host = "api.bintray.com"
-    val Realm = "Bintray API Realm"
+    val Host = "api.github.com"
+    val Realm = "GitHub API Realm"
     val template = templateSrc(Realm, Host)_
   }
 
@@ -34,7 +34,7 @@ object BintrayCredentials {
     val template = templateSrc(Realm, Host)_
   }
 
-  def read(path: File): Option[BintrayCredentials] =
+  def read(path: File): Option[GitHubCredentials] =
     path match {
       case creds if creds.exists =>
         import scala.collection.JavaConverters._
@@ -45,12 +45,12 @@ object BintrayCredentials {
         }.toMap
         val missing = Keys.filter(!mapped.contains(_))
         if (!missing.isEmpty) None
-        else Some(BintrayCredentials(
+        else Some(GitHubCredentials(
           mapped("user"), mapped("password")))
       case _ => None
     }
 
-  def writeBintray(
+  def writeGitHub(
     user: String, password: String, path: File) =
     IO.write(path, api.template(user, password))
 

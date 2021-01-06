@@ -1,4 +1,4 @@
-package bintray
+package github
 
 import java.io.File
 import java.net.URL
@@ -13,7 +13,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-sealed abstract class AbstractBintrayRepository(underlying: Repository)
+sealed abstract class AbstractGitHubRepository(underlying: Repository)
   extends AbstractRepository with DispatchHandlers {
 
   override def getResource(src: String): Resource = underlying.getResource(src)
@@ -23,11 +23,11 @@ sealed abstract class AbstractBintrayRepository(underlying: Repository)
   override def list(parent: String): java.util.List[_] = underlying.list(parent)
 }
 
-case class BintrayGenericRepository(
+case class GitHubGenericRepository(
   underlying: Repository,
   ver: Client#Repo#Package#Version,
   release: Boolean)
-  extends AbstractBintrayRepository(underlying) {
+  extends AbstractGitHubRepository(underlying) {
 
   override def put(artifact: Artifact, src: File, dest: String, overwrite: Boolean): Unit =
     Await.result(
@@ -39,12 +39,12 @@ case class BintrayGenericRepository(
     }
 }
 
-case class BintrayMavenRepository(
+case class GitHubMavenRepository(
   underlying: Repository,
   pkg: Client#Repo#Package,
   release: Boolean,
   ignoreExists: Boolean)
-  extends AbstractBintrayRepository(underlying) {
+  extends AbstractGitHubRepository(underlying) {
 
   override def put(artifact: Artifact, src: File, dest: String, overwrite: Boolean): Unit =
     Await.result(
@@ -57,7 +57,7 @@ case class BintrayMavenRepository(
     }
 
   /** transforms a full url like
-    *  https://api.bintray.com/maven/:subject/maven/:name/me/lessis/:name_2.10/0.1.0/:name_2.10-0.1.0.pom
+    *  https://api.github.com/maven/:subject/maven/:name/me/lessis/:name_2.10/0.1.0/:name_2.10-0.1.0.pom
     *  into a path like
     *  me/lessis/:name_2.10/0.1.0/:name_2.10-0.1.0.pom
     */
@@ -65,7 +65,7 @@ case class BintrayMavenRepository(
     new URL(dest).getPath.split('/').drop(5).mkString("/")
 }
 
-case class BintrayIvyResolver(
+case class GitHubIvyResolver(
   name: String,
   ver: Client#Repo#Package#Version,
   release: Boolean)
@@ -76,10 +76,10 @@ case class BintrayIvyResolver(
   setArtifactPatterns(ivyStylePatterns.artifactPatterns.asJava)
 
   override def setRepository(repository: Repository): Unit =
-    super.setRepository(BintrayGenericRepository(repository, ver, release))
+    super.setRepository(GitHubGenericRepository(repository, ver, release))
 }
 
-case class BintrayMavenResolver(
+case class GitHubMavenResolver(
   name: String,
   rootURL: String,
   ver: Client#Repo#Package,
@@ -93,10 +93,10 @@ case class BintrayMavenResolver(
   setRoot(rootURL)
 
   override def setRepository(repository: Repository): Unit =
-    super.setRepository(BintrayMavenRepository(repository, ver, release, ignoreExists))
+    super.setRepository(GitHubMavenRepository(repository, ver, release, ignoreExists))
 }
 
-case class BintrayMavenSbtPluginResolver(
+case class GitHubMavenSbtPluginResolver(
   name: String,
   ver: Client#Repo#Package#Version,
   release: Boolean)
@@ -107,5 +107,5 @@ case class BintrayMavenSbtPluginResolver(
   setArtifactPatterns(mavenStylePatterns.artifactPatterns.asJava)
 
   override def setRepository(repository: Repository): Unit =
-    super.setRepository(BintrayGenericRepository(repository, ver, release))
+    super.setRepository(GitHubGenericRepository(repository, ver, release))
 }

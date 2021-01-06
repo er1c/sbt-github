@@ -1,13 +1,13 @@
-package bintray
+package github
 
 import sbt._
 import bintry.{ Licenses, Client }
 import scala.util.Try
 import scala.collection.concurrent.TrieMap
 
-object Bintray {
+object GitHub {
   val defaultMavenRepository = "maven"
-  // http://www.scala-sbt.org/0.13/docs/Bintray-For-Plugins.html
+  // http://www.scala-sbt.org/0.13/docs/GitHub-For-Plugins.html
   val defaultSbtPluginRepository = "sbt-plugins"
 
   def publishTo(repo: Client#Repo, pkg: Client#Repo#Package, version: String,
@@ -15,37 +15,37 @@ object Bintray {
     RawRepository(
       (mvnStyle, isSbtPlugin) match {
         case (true, true) =>
-          BintrayMavenSbtPluginResolver(
-            s"Bintray-Sbt-Maven-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
+          GitHubMavenSbtPluginResolver(
+            s"GitHub-Sbt-Maven-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
             pkg.version(version), release)
         case (true, _) =>
-          BintrayMavenResolver(
-            s"Bintray-Maven-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
-            s"https://api.bintray.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, release, ignoreExists = false)
+          GitHubMavenResolver(
+            s"GitHub-Maven-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
+            s"https://api.github.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, release, ignoreExists = false)
         case (false, _) =>
-          BintrayIvyResolver(
-            s"Bintray-${if (isSbtPlugin) "Sbt" else "Ivy"}-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
+          GitHubIvyResolver(
+            s"GitHub-${if (isSbtPlugin) "Sbt" else "Ivy"}-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
             pkg.version(version), release)
       })
 
   def remoteCache(repo: Client#Repo, pkg: Client#Repo#Package): Resolver =
     RawRepository(
-      BintrayMavenResolver(
-        s"Bintray-Remote-Cache-${repo.subject}-${repo.repo}-${pkg.name}",
-        s"https://api.bintray.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, true, true)
+      GitHubMavenResolver(
+        s"GitHub-Remote-Cache-${repo.subject}-${repo.repo}-${pkg.name}",
+        s"https://api.github.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, true, true)
     )
 
-  def whoami(creds: Option[BintrayCredentials], log: Logger): String =
+  def whoami(creds: Option[GitHubCredentials], log: Logger): String =
     {
       val is = creds match {
         case None => "nobody"
-        case Some(BintrayCredentials(user, _)) => user
+        case Some(GitHubCredentials(user, _)) => user
       }
       log.info(is)
       is
     }
 
-  private[bintray] def ensureLicenses(licenses: Seq[(String, URL)], omit: Boolean): Unit =
+  private[github] def ensureLicenses(licenses: Seq[(String, URL)], omit: Boolean): Unit =
     {
       val acceptable = Licenses.Names.toSeq.sorted.mkString(", ")
       if (!omit) {
@@ -56,78 +56,78 @@ object Bintray {
       }
     }
 
-  def withRepo[A](context: BintrayCredentialContext, org: Option[String], repoName: String, log: Logger)
-    (f: BintrayRepo => A): Option[A] =
+  def withRepo[A](context: GitHubCredentialContext, org: Option[String], repoName: String, log: Logger)
+    (f: GitHubRepo => A): Option[A] =
     ensuredCredentials(context, log) map { cred =>
       val repo = cachedRepo(cred, org, repoName)
       f(repo)
     }
 
-  private val repoCache: TrieMap[(BintrayCredentials, Option[String], String), BintrayRepo] = TrieMap()
-  def cachedRepo(credential: BintrayCredentials, org: Option[String], repoName: String): BintrayRepo =
+  private val repoCache: TrieMap[(GitHubCredentials, Option[String], String), GitHubRepo] = TrieMap()
+  def cachedRepo(credential: GitHubCredentials, org: Option[String], repoName: String): GitHubRepo =
     repoCache.synchronized {
       // lock to avoid creating and leaking HTTP client threadpools
-      // see: https://github.com/sbt/sbt-bintray/issues/144
-      repoCache.getOrElseUpdate((credential, org, repoName), BintrayRepo(credential, org, repoName))
+      // see: https://github.com/sbt/sbt-github/issues/144
+      repoCache.getOrElseUpdate((credential, org, repoName), GitHubRepo(credential, org, repoName))
     }
 
-  private[bintray] def ensuredCredentials(
-    context: BintrayCredentialContext, log: Logger): Option[BintrayCredentials] =
+  private[github] def ensuredCredentials(
+    context: GitHubCredentialContext, log: Logger): Option[GitHubCredentials] =
       propsCredentials(context)
         .orElse(envCredentials(context))
-        .orElse(BintrayCredentials.read(context.credsFile))
+        .orElse(GitHubCredentials.read(context.credsFile))
 
-  private def propsCredentials(context: BintrayCredentialContext) =
+  private def propsCredentials(context: GitHubCredentialContext) =
     for {
       name <- sys.props.get(context.userNameProp)
       pass <- sys.props.get(context.passProp)
-    } yield BintrayCredentials(name, pass)
+    } yield GitHubCredentials(name, pass)
 
-  private def envCredentials(context: BintrayCredentialContext) =
+  private def envCredentials(context: GitHubCredentialContext) =
     for {
       name <- sys.env.get(context.userNameEnv)
       pass <- sys.env.get(context.passEnv)
-    } yield BintrayCredentials(name, pass)
+    } yield GitHubCredentials(name, pass)
 
   /** assign credentials or ask for new ones */
-  private[bintray] def changeCredentials(context: BintrayCredentialContext, log: Logger): Unit =
-    Bintray.ensuredCredentials(context, Logger.Null) match {
+  private[github] def changeCredentials(context: GitHubCredentialContext, log: Logger): Unit =
+    GitHub.ensuredCredentials(context, Logger.Null) match {
       case None =>
-        saveBintrayCredentials(context.credsFile)(requestCredentials(), log)
-      case Some(BintrayCredentials(user, pass)) =>
-        saveBintrayCredentials(context.credsFile)(requestCredentials(Some(user), Some(pass)), log)
+        saveGitHubCredentials(context.credsFile)(requestCredentials(), log)
+      case Some(GitHubCredentials(user, pass)) =>
+        saveGitHubCredentials(context.credsFile)(requestCredentials(Some(user), Some(pass)), log)
     }
 
-  private[bintray] def buildResolvers(creds: Option[BintrayCredentials], org: Option[String], repoName: String, mavenStyle: Boolean): Seq[Resolver] =
+  private[github] def buildResolvers(creds: Option[GitHubCredentials], org: Option[String], repoName: String, mavenStyle: Boolean): Seq[Resolver] =
     creds.map {
-      case BintrayCredentials(user, _) => Seq(
-        if (mavenStyle) Resolver.bintrayRepo(org.getOrElse(user), repoName)
-        else Resolver.bintrayIvyRepo(org.getOrElse(user), repoName)
+      case GitHubCredentials(user, _) => Seq(
+        if (mavenStyle) Resolver.githubRepo(org.getOrElse(user), repoName)
+        else Resolver.githubIvyRepo(org.getOrElse(user), repoName)
       )
     } getOrElse Nil
 
-  private def saveBintrayCredentials(to: File)(creds: (String, String), log: Logger) = {
+  private def saveGitHubCredentials(to: File)(creds: (String, String), log: Logger) = {
     log.info(s"saving credentials to $to")
     val (name, pass) = creds
-    BintrayCredentials.writeBintray(name, pass, to)
+    GitHubCredentials.writeGitHub(name, pass, to)
     log.info("reload project for sbt setting `publishTo` to take effect")
   }
 
-  // todo: generalize this for both bintray & sonatype credential prompts
+  // todo: generalize this for both github & sonatype credential prompts
   private def requestCredentials(
     defaultName: Option[String] = None,
     defaultKey: Option[String] = None): (String, String) = {
-    val name = Prompt("Enter bintray username%s" format defaultName.map(" (%s)".format(_)).getOrElse("")).orElse(defaultName).getOrElse {
-      sys.error("bintray username required")
+    val name = Prompt("Enter github username%s" format defaultName.map(" (%s)".format(_)).getOrElse("")).orElse(defaultName).getOrElse {
+      sys.error("github username required")
     }
-    val pass = Prompt.descretely("Enter bintray API key %s" format defaultKey.map(_ => "(use current)").getOrElse("(under https://bintray.com/profile/edit)"))
+    val pass = Prompt.descretely("Enter github API key %s" format defaultKey.map(_ => "(use current)").getOrElse("(under https://github.com/profile/edit)"))
         .orElse(defaultKey).getOrElse {
-          sys.error("bintray API key required")
+          sys.error("github API key required")
         }
     (name, pass)
   }
 
-  private[bintray] object await {
+  private[github] object await {
     import scala.concurrent.{ Await, Future }
     import scala.concurrent.duration.Duration
 

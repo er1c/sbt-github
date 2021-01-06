@@ -1,32 +1,32 @@
-package bintray
+package github
 
 import sbt._
-import Bintray._
+import GitHub._
 import bintry.Client
 import dispatch.Http
 import java.time.Instant
 import scala.collection.mutable
 import scala.concurrent.duration.Duration
 
-case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repoName: String) extends DispatchHandlers {
+case class GitHubRepo(credential: GitHubCredentials, org: Option[String], repoName: String) extends DispatchHandlers {
   import scala.concurrent.ExecutionContext.Implicits.global
   import dispatch.as
 
   lazy val http: Http = Http(Http.defaultClientBuilder)
-  lazy val BintrayCredentials(user, key) = credential
+  lazy val GitHubCredentials(user, key) = credential
   lazy val client: Client = Client(user, key, http)
   lazy val repo: Client#Repo = client.repo(org.getOrElse(user), repoName)
   def owner = org.getOrElse(user)
 
   def close(): Unit = http.shutdown()
 
-  /** updates a package version with the values defined in versionAttributes in bintray */
+  /** updates a package version with the values defined in versionAttributes in github */
   def publishVersionAttributes(packageName: String, vers: String, attributes: AttrMap): Unit =
     await.ready {
       repo.get(packageName).version(vers).attrs.update(attributes.toList:_*)()
     }
 
-  /** Ensure user-specific bintray package exists. This will have a side effect of updating the packages attrs
+  /** Ensure user-specific github package exists. This will have a side effect of updating the packages attrs
    *  when it exists.
    *  todo(doug): Perhaps we want to factor that into an explicit task. */
   def ensurePackage(packageName: String, attributes: AttrMap,
@@ -58,18 +58,18 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
     isSbtPlugin: Boolean, isRelease: Boolean, log: Logger): Resolver =
     {
       val pkg = repo.get(packageName)
-      // warn the user that bintray expects maven published artifacts to be published to the `maven` repo
+      // warn the user that github expects maven published artifacts to be published to the `maven` repo
       // but they have explicitly opted into a publish style and/or repo that
       // deviates from that expectation
-      if (Bintray.defaultMavenRepository == repo.repo && !mvnStyle) log.info(
+      if (GitHub.defaultMavenRepository == repo.repo && !mvnStyle) log.info(
         "you have opted to publish to a repository named 'maven' but publishMavenStyle is assigned to false. This may result in unexpected behavior")
-      Bintray.publishTo(repo, pkg, vers, mvnStyle, isSbtPlugin, isRelease)
+      GitHub.publishTo(repo, pkg, vers, mvnStyle, isSbtPlugin, isRelease)
     }
 
   def buildRemoteCacheResolver(packageName: String, log: Logger): Resolver =
     {
       val pkg = repo.get(packageName)
-      Bintray.remoteCache(repo, pkg)
+      GitHub.remoteCache(repo, pkg)
     }
 
   def upload(packageName: String, vers: String, path: String, f: File, log: Logger): Unit =
@@ -96,7 +96,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
    *
    *  1. From system properties.
    *  2. From system environment variables.
-   *  3. From the bintray cache.
+   *  3. From the github cache.
    *
    * This function behaves in the same way as `requestSonatypeCredentials`.
    */
@@ -144,7 +144,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
   def syncMavenCentral(packageName: String, vers: String, creds: Seq[Credentials], close: Boolean, retryDelays: Seq[Duration], log: Logger): Unit =
     {
       val btyVersion = repo.get(packageName).version(vers)
-      val BintrayCredentials(sonauser, sonapass) = resolveSonatypeCredentials(creds)
+      val GitHubCredentials(sonauser, sonapass) = resolveSonatypeCredentials(creds)
       Retry.withDelays(log, retryDelays) {
         await.result(
           btyVersion.mavenCentralSync(sonauser, sonapass, close)(asStatusAndBody)) match {
@@ -155,7 +155,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
             log.info(s"$owner/$packageName@$vers was synced with maven central")
             log.info(body)
           case (404, body) =>
-            log.info(s"$owner/$packageName@$vers was not found. try publishing this package version to bintray first by typing `publish`")
+            log.info(s"$owner/$packageName@$vers was not found. try publishing this package version to github first by typing `publish`")
             log.info(s"body $body")
           case (_, body) =>
             // ensure these items are removed from the cache, they are probably bad
@@ -166,11 +166,11 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
     }
 
   private def resolveSonatypeCredentials(
-    creds: Seq[sbt.Credentials]): BintrayCredentials =
-    Credentials.forHost(creds, BintrayCredentials.sonatype.Host)
+    creds: Seq[sbt.Credentials]): GitHubCredentials =
+    Credentials.forHost(creds, GitHubCredentials.sonatype.Host)
       .map { d => (d.userName, d.passwd) }
       .getOrElse(requestSonatypeCredentials) match {
-        case (user, pass) => BintrayCredentials(user, pass)
+        case (user, pass) => GitHubCredentials(user, pass)
       }
 
   /** Search Sonatype credentials in the following order:
@@ -202,7 +202,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
     }
   }
 
-  /** Lists versions of bintray packages corresponding to the current project */
+  /** Lists versions of github packages corresponding to the current project */
   def packageVersions(packageName: String, log: Logger): Seq[String] =
     {
       import _root_.org.json4s._
@@ -244,7 +244,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
       if (vers.isEmpty || !ttl.isFinite) ()
       else {
         val expirationDate = Instant.now.minusSeconds(ttl.toSeconds)
-        val expiredVersions = BintrayRepo.expiredVersions(vers.toVector, expirationDate)(packageVersionUpdatedDate(packageName, _))
+        val expiredVersions = GitHubRepo.expiredVersions(vers.toVector, expirationDate)(packageVersionUpdatedDate(packageName, _))
         log.info(s"about to delete $expiredVersions")
         expiredVersions foreach { ver =>
           unpublish(packageName, ver, log)
@@ -253,7 +253,7 @@ case class BintrayRepo(credential: BintrayCredentials, org: Option[String], repo
     }
 }
 
-object BintrayRepo {
+object GitHubRepo {
   /**
    * Return expired versions on or before the cutoffDate.
    * vers is expected to contain a sequence of versions from newest first to old.

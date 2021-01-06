@@ -1,76 +1,76 @@
-package bintray
+package github
 
 import sbt._
 
 import scala.concurrent.duration.Duration
 
-trait BintrayKeys {
-  val bintray = taskKey[String]("sbt-bintray is an interface for the bintray package service")
+trait GitHubKeys {
+  val github = taskKey[String]("sbt-github is an interface for the github package service")
 
-  val bintrayRelease = taskKey[Unit](
-    "Releases a version of package on bintray")
+  val githubRelease = taskKey[Unit](
+    "Releases a version of package on github")
 
-  val bintrayReleaseOnPublish = settingKey[Boolean](
-    "When set to true, publish also runs bintrayRelease.")
+  val githubReleaseOnPublish = settingKey[Boolean](
+    "When set to true, publish also runs githubRelease.")
 
-  val bintrayOrganization = settingKey[Option[String]](
-    "Bintray organization name to publish to. Defaults to None unless project is an sbtPlugin")
+  val githubOrganization = settingKey[Option[String]](
+    "GitHub organization name to publish to. Defaults to None unless project is an sbtPlugin")
 
-  val bintrayPackage = settingKey[String](
-    "Bintray package name")
+  val githubPackage = settingKey[String](
+    "GitHub package name")
 
-  val bintrayRepository = settingKey[String](
-    "Bintray repository to publish to. Defaults to 'maven' unless project is an sbtPlugin")
+  val githubRepository = settingKey[String](
+    "GitHub repository to publish to. Defaults to 'maven' unless project is an sbtPlugin")
 
-  val bintrayPackageLabels = settingKey[Seq[String]](
-    "List of labels associated with your bintray package")
+  val githubPackageLabels = settingKey[Seq[String]](
+    "List of labels associated with your github package")
 
-  val bintrayPackageAttributes = settingKey[AttrMap](
-    "List of bintray package metadata attributes")
+  val githubPackageAttributes = settingKey[AttrMap](
+    "List of github package metadata attributes")
 
-  val bintrayVersionAttributes = settingKey[AttrMap](
-    "List of bintray version metadata attributes")
+  val githubVersionAttributes = settingKey[AttrMap](
+    "List of github version metadata attributes")
 
-  val bintrayCredentialsFile = settingKey[File](
-    "File containing bintray api credentials")
+  val githubCredentialsFile = settingKey[File](
+    "File containing github api credentials")
 
-  val bintrayPackageVersions = taskKey[Seq[String]](
-    "List bintray versions for the current package")
+  val githubPackageVersions = taskKey[Seq[String]](
+    "List github versions for the current package")
 
-  val bintrayChangeCredentials = taskKey[Unit](
-    "Change your current bintray credentials")
+  val githubChangeCredentials = taskKey[Unit](
+    "Change your current github credentials")
 
-  val bintrayWhoami = taskKey[String](
-    "Print the name of the currently authenticated bintray user")
+  val githubWhoami = taskKey[String](
+    "Print the name of the currently authenticated github user")
 
-  val bintrayOmitLicense = settingKey[Boolean](
+  val githubOmitLicense = settingKey[Boolean](
      "Omit license, useful if publishing to a private repo. Defaults to false")
 
-  val bintrayEnsureLicenses = taskKey[Unit](
-    "Ensure that the licenses for bintray are valid.")
+  val githubEnsureLicenses = taskKey[Unit](
+    "Ensure that the licenses for github are valid.")
 
-  val bintrayEnsureCredentials = taskKey[BintrayCredentials](
-    "Ensure that the credentials for bintray are valid.")
+  val githubEnsureCredentials = taskKey[GitHubCredentials](
+    "Ensure that the credentials for github are valid.")
 
-  val bintrayEnsureBintrayPackageExists = taskKey[Unit](
-    "Ensure that the bintray package exists and is valid.")
+  val githubEnsureGitHubPackageExists = taskKey[Unit](
+    "Ensure that the github package exists and is valid.")
 
-  val bintrayUnpublish = taskKey[Unit](
-    "Unpublishes a version of package on bintray")
+  val githubUnpublish = taskKey[Unit](
+    "Unpublishes a version of package on github")
 
-  val bintrayRemoteSign = taskKey[Unit](
-    "PGP sign artifacts hosted remotely on bintray. (See also https://bintray.com/docs/uploads/uploads_gpgsigning.html)")
+  val githubRemoteSign = taskKey[Unit](
+    "PGP sign artifacts hosted remotely on github. (See also https://github.com/docs/uploads/uploads_gpgsigning.html)")
 
-  val bintraySyncMavenCentral = taskKey[Unit](
-    "Sync bintray-published artifacts with maven central")
+  val githubSyncMavenCentral = taskKey[Unit](
+    "Sync github-published artifacts with maven central")
 
-  val bintraySyncSonatypeStaging = taskKey[Unit](
-    "Sync bintray-published artifacts with sonatype staging repo without releasing them to maven central")
+  val githubSyncSonatypeStaging = taskKey[Unit](
+    "Sync github-published artifacts with sonatype staging repo without releasing them to maven central")
 
-  val bintraySyncMavenCentralRetries = settingKey[Seq[Duration]](
+  val githubSyncMavenCentralRetries = settingKey[Seq[Duration]](
     "In case of synchronization failure, it will be retried according to delays sepcified. Set to empty sequence for no retries.")
 
-  val bintrayVcsUrl = taskKey[Option[String]](
+  val githubVcsUrl = taskKey[Option[String]](
     "Canonical url for hosted version control repository")
 
   /** named used for common package attributes lifted from sbt
@@ -82,11 +82,11 @@ trait BintrayKeys {
   }
 }
 
-object BintrayKeys extends BintrayKeys {}
+object GitHubKeys extends GitHubKeys {}
 
-trait InternalBintrayKeys {
-  val bintrayRepo = taskKey[BintrayRepo](
-    "Bintray repository.")
+trait InternalGitHubKeys {
+  val githubRepo = taskKey[GitHubRepo](
+    "GitHub repository.")
 }
 
-object InternalBintrayKeys extends InternalBintrayKeys {}
+object InternalGitHubKeys extends InternalGitHubKeys {}

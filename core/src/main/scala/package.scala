@@ -1,6 +1,6 @@
 import bintry.Attr
 
-package object bintray {
+package object github {
   type AttrMap = Map[String, Iterable[Attr[_]]]
 }
 

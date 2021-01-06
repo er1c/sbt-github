@@ -1,4 +1,4 @@
-package bintray
+package github
 
 import org.asynchttpclient.Response
 

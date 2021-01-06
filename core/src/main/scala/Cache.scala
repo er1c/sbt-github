@@ -1,6 +1,6 @@
-package bintray
+package github
 
-private[bintray] object Cache {
+private[github] object Cache {
   private val underlying =
     new java.util.concurrent.ConcurrentHashMap[String, String]()
   def removeMulti(keys: String*) =

@@ -1,11 +1,11 @@
-package bintray
+package github
 
 import java.io.File
 
 /**
  * This abstract which environmental variable will be used by which plugin.
  */
-case class BintrayCredentialContext(
+case class GitHubCredentialContext(
   credsFile: File,
   userNameProp: String,
   passProp: String,
@@ -13,21 +13,21 @@ case class BintrayCredentialContext(
   passEnv: String
 )
 
-object BintrayCredentialContext {
-  def apply(credsFile: File): BintrayCredentialContext =
-    BintrayCredentialContext(
+object GitHubCredentialContext {
+  def apply(credsFile: File): GitHubCredentialContext =
+    GitHubCredentialContext(
       credsFile,
-      "bintray.user",
-      "bintray.pass",
+      "github.user",
+      "github.pass",
       "BINTRAY_USER",
       "BINTRAY_PASS"
     )
 
-  def remoteCache(credsFile: File): BintrayCredentialContext =
-    BintrayCredentialContext(
+  def remoteCache(credsFile: File): GitHubCredentialContext =
+    GitHubCredentialContext(
       credsFile,
-      "bintray.remote.cache.user",
-      "bintray.remote.cache.pass",
+      "github.remote.cache.user",
+      "github.remote.cache.pass",
       "BINTRAY_REMOTE_CACHE_USER",
       "BINTRAY_REMOTE_CACHE_PASS"
     )

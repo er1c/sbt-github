@@ -1,4 +1,4 @@
-package bintray
+package github
 
 import scala.language.reflectiveCalls
 
