@@ -2,16 +2,24 @@ package github
 
 import java.io.File
 import java.net.URL
-
 import bintry.Client
 import org.apache.ivy.core.module.descriptor.Artifact
 import org.apache.ivy.plugins.repository.{AbstractRepository, Repository, Resource}
 import org.apache.ivy.plugins.resolver.{IBiblioResolver, URLResolver}
+import sbt.{MavenRepository, Resolver}
 import sbt.Resolver.{ivyStylePatterns, mavenStylePatterns}
-
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+
+object GitHubResolverSyntax {
+  implicit class GitHubPackagesResolverSyntax(val resolver: sbt.Resolver.type) extends AnyVal {
+    def githubRepo(owner: String, repo: String) =
+      MavenRepository(s"github-$owner-$repo", s"https://maven.pkg.github.com/$owner/$repo")
+    def githubIvyRepo(owner: String, repo: String) =
+      Resolver.url(s"github-$owner-$repo", new URL(s"https://maven.pkg.github.com/$owner/$repo"))(ivyStylePatterns)
+  }
+}
 
 sealed abstract class AbstractGitHubRepository(underlying: Repository)
   extends AbstractRepository with DispatchHandlers {
