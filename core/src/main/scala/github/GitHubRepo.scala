@@ -8,15 +8,14 @@ import java.time.Instant
 import scala.collection.mutable
 import scala.concurrent.duration.Duration
 
-case class GitHubRepo(credential: GitHubCredentials, org: Option[String], repoName: String) extends DispatchHandlers {
+case class GitHubRepo(credential: GitHubToken, owner: String, repoName: String) extends DispatchHandlers {
   import scala.concurrent.ExecutionContext.Implicits.global
   import dispatch.as
 
   lazy val http: Http = Http(Http.defaultClientBuilder)
-  lazy val GitHubCredentials(user, key) = credential
-  lazy val client: Client = Client(user, key, http)
-  lazy val repo: Client#Repo = client.repo(org.getOrElse(user), repoName)
-  def owner = org.getOrElse(user)
+  lazy val GitHubToken(apiKey) = credential
+  lazy val client: Client = Client(apiKey, apiKey, http)
+  lazy val repo: Client#Repo = client.repo(owner, repoName)
 
   def close(): Unit = http.shutdown()
 
@@ -137,70 +136,70 @@ case class GitHubRepo(credential: GitHubCredentials, org: Option[String], repoNa
       else sys.error(s"failed to sign $owner/$packageName@$vers: $body")
     }
 
-  /** synchronize a published set of artifacts for a pkg version to mvn central
-   *  this requires already having a sonatype oss account set up.
-   *  this is itself quite a task but in the case the user has done this in the past
-   *  this can be quiet a convenient feature */
-  def syncMavenCentral(packageName: String, vers: String, creds: Seq[Credentials], close: Boolean, retryDelays: Seq[Duration], log: Logger): Unit =
-    {
-      val btyVersion = repo.get(packageName).version(vers)
-      val GitHubCredentials(sonauser, sonapass) = resolveSonatypeCredentials(creds)
-      Retry.withDelays(log, retryDelays) {
-        await.result(
-          btyVersion.mavenCentralSync(sonauser, sonapass, close)(asStatusAndBody)) match {
-          case (200, body) =>
-            // store these sonatype credentials in memory for the remainder of the sbt session
-            Cache.putMulti(
-              ("sona.user", sonauser), ("sona.pass", sonapass))
-            log.info(s"$owner/$packageName@$vers was synced with maven central")
-            log.info(body)
-          case (404, body) =>
-            log.info(s"$owner/$packageName@$vers was not found. try publishing this package version to github first by typing `publish`")
-            log.info(s"body $body")
-          case (_, body) =>
-            // ensure these items are removed from the cache, they are probably bad
-            Cache.removeMulti("sona.user", "sona.pass")
-            sys.error(s"failed to sync $owner/$packageName@$vers with maven central: $body")
-        }
-      }
-    }
+//  /** synchronize a published set of artifacts for a pkg version to mvn central
+//   *  this requires already having a sonatype oss account set up.
+//   *  this is itself quite a task but in the case the user has done this in the past
+//   *  this can be quiet a convenient feature */
+//  def syncMavenCentral(packageName: String, vers: String, creds: Seq[Credentials], close: Boolean, retryDelays: Seq[Duration], log: Logger): Unit =
+//    {
+//      val btyVersion = repo.get(packageName).version(vers)
+//      val GitHubCredentials(sonauser, sonapass) = resolveSonatypeCredentials(creds)
+//      Retry.withDelays(log, retryDelays) {
+//        await.result(
+//          btyVersion.mavenCentralSync(sonauser, sonapass, close)(asStatusAndBody)) match {
+//          case (200, body) =>
+//            // store these sonatype credentials in memory for the remainder of the sbt session
+//            Cache.putMulti(
+//              ("sona.user", sonauser), ("sona.pass", sonapass))
+//            log.info(s"$owner/$packageName@$vers was synced with maven central")
+//            log.info(body)
+//          case (404, body) =>
+//            log.info(s"$owner/$packageName@$vers was not found. try publishing this package version to github first by typing `publish`")
+//            log.info(s"body $body")
+//          case (_, body) =>
+//            // ensure these items are removed from the cache, they are probably bad
+//            Cache.removeMulti("sona.user", "sona.pass")
+//            sys.error(s"failed to sync $owner/$packageName@$vers with maven central: $body")
+//        }
+//      }
+//    }
 
-  private def resolveSonatypeCredentials(
-    creds: Seq[sbt.Credentials]): GitHubCredentials =
-    Credentials.forHost(creds, GitHubCredentials.sonatype.Host)
-      .map { d => (d.userName, d.passwd) }
-      .getOrElse(requestSonatypeCredentials) match {
-        case (user, pass) => GitHubCredentials(user, pass)
-      }
+//  private def resolveSonatypeCredentials(
+//    creds: Seq[sbt.Credentials]): GitHubCredentials =
+//    Credentials.forHost(creds, GitHubCredentials.sonatype.Host)
+//      .map { d => (d.userName, d.passwd) }
+//      .getOrElse(requestSonatypeCredentials) match {
+//        case (user, pass) => GitHubCredentials(user, pass)
+//      }
 
-  /** Search Sonatype credentials in the following order:
-   *  1. Cache
-   *  2. System properties
-   *  3. Environment variables
-   *  4. User input */
-  private def requestSonatypeCredentials: (String, String) = {
-    val cached = Cache.getMulti("sona.user", "sona.pass")
-    (cached("sona.user"), cached("sona.pass")) match {
-      case (Some(user), Some(pass)) =>
-        (user, pass)
-      case _ =>
-        val propsCredentials = for (name <- sys.props.get("sona.user"); pass <- sys.props.get("sona.pass")) yield (name, pass)
-        propsCredentials match {
-          case Some((name, pass)) => (name, pass)
-          case _ =>
-            val envCredentials = for (name <- sys.env.get("SONA_USER"); pass <- sys.env.get("SONA_PASS")) yield (name, pass)
-            envCredentials.getOrElse {
-              val name = Prompt("Enter sonatype username").getOrElse {
-                sys.error("sonatype username required")
-              }
-              val pass = Prompt.descretely("Enter sonatype password").getOrElse {
-                sys.error("sonatype password is required")
-              }
-              (name, pass)
-            }
-        }
-    }
-  }
+//  /** Search Sonatype credentials in the following order:
+//   *  1. Cache
+//   *  2. System properties
+//   *  3. Environment variables
+//   *  4. User input */
+//  private def requestSonatypeCredentials: (String, String) = {
+//    val cached = Cache.getMulti("sona.user", "sona.pass")
+//    (cached("sona.user"), cached("sona.pass")) match {
+//      case (Some(user), Some(pass)) =>
+//        (user, pass)
+//      case _ =>
+//        val propsCredentials = for (name <- sys.props.get("sona.user"); pass <- sys.props.get("sona.pass")) yield (name, pass)
+//        propsCredentials match {
+//          case Some((name, pass)) => (name, pass)
+//          case _ =>
+//            val envCredentials = for (name <- sys.env.get("SONA_USER"); pass <- sys.env.get("SONA_PASS")) yield (name, pass)
+//            envCredentials.getOrElse {
+//              val name = Prompt("Enter sonatype username").getOrElse {
+//                sys.error("sonatype username required")
+//              }
+//              val pass = Prompt.descretely("Enter sonatype password").getOrElse {
+//                sys.error("sonatype password is required")
+//              }
+//              (name, pass)
+//            }
+//        }
+//    }
+//  }
 
   /** Lists versions of github packages corresponding to the current project */
   def packageVersions(packageName: String, log: Logger): Seq[String] =

@@ -32,14 +32,14 @@ object GitHubPlugin extends AutoPlugin {
     githubCommonSettings ++ githubPublishSettings ++ githubQuerySettings
 
   def githubCommonSettings: Seq[Setting[_]] = Seq(
-    githubChangeCredentials := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
-      GitHub.changeCredentials(context, streams.value.log)
-    },
-    githubWhoami := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
-      GitHub.whoami(GitHub.ensuredCredentials(context, streams.value.log), streams.value.log)
-    }
+//    githubChangeCredentials := {
+//      val context = GitHubCredentialContext(githubCredentialsFile.value)
+//      GitHub.changeCredentials(context, streams.value.log)
+//    },
+//    githubWhoami := {
+//      val context = GitHubCredentialContext(githubCredentialsFile.value)
+//      GitHub.whoami(GitHub.ensuredCredentials(context, streams.value.log), streams.value.log)
+//    }
   )
 
   def githubQuerySettings: Seq[Setting[_]] = Seq(
@@ -52,7 +52,6 @@ object GitHubPlugin extends AutoPlugin {
   )
 
   def buildPublishSettings: Seq[Setting[_]] = Seq(
-    githubOrganization in ThisBuild := None,
     githubVcsUrl in ThisBuild := vcsUrlTask.value,
     githubReleaseOnPublish in ThisBuild := true
   )
@@ -60,7 +59,7 @@ object GitHubPlugin extends AutoPlugin {
   def githubPublishSettings: Seq[Setting[_]] = githubCommonSettings ++ Seq(
     githubPackage := moduleName.value,
     githubRepo := GitHub.cachedRepo(githubEnsureCredentials.value,
-      githubOrganization.value,
+      githubOwner.value,
       githubRepository.value),
     // todo: don't force this to be sbt-plugin-releases
     githubRepository := {
@@ -79,7 +78,7 @@ object GitHubPlugin extends AutoPlugin {
     resolvers in github := {
       val context = GitHubCredentialContext(githubCredentialsFile.value)
       GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
-        githubOrganization.value,
+        githubOwner.value,
         githubRepository.value,
         publishMavenStyle.value
       )
@@ -109,8 +108,8 @@ object GitHubPlugin extends AutoPlugin {
       GitHub.ensuredCredentials(context, streams.value.log).getOrElse {
         sys.error(s"Missing github credentials. " +
           s"Either create a credentials file with the githubChangeCredentials task, " +
-          s"set the BINTRAY_USER and BINTRAY_PASS environment variables or " +
-          s"pass github.user and github.pass properties to sbt.")
+          s"set the GITHUB_TOKEN environment variables or " +
+          s"pass github.token properties to sbt.")
       }
     },
     githubEnsureGitHubPackageExists := ensurePackageTask.value,
@@ -119,8 +118,8 @@ object GitHubPlugin extends AutoPlugin {
       val repo = githubRepo.value
       repo.remoteSign(githubPackage.value, version.value, streams.value.log)
     },
-    githubSyncMavenCentral := syncMavenCentral(close = true).value,
-    githubSyncSonatypeStaging := syncMavenCentral(close = false).value,
+//    githubSyncMavenCentral := syncMavenCentral(close = true).value,
+//    githubSyncSonatypeStaging := syncMavenCentral(close = false).value,
     githubSyncMavenCentralRetries := Seq.empty,
     githubRelease := {
       val _ = publishVersionAttributesTask.value
@@ -147,10 +146,10 @@ object GitHubPlugin extends AutoPlugin {
     publish := dynamicallyPublish.value
   )
 
-  private def syncMavenCentral(close: Boolean): Initialize[Task[Unit]] = task {
-    val repo = githubRepo.value
-    repo.syncMavenCentral(githubPackage.value, version.value, credentials.value, close, githubSyncMavenCentralRetries.value, streams.value.log)
-  }
+//  private def syncMavenCentral(close: Boolean): Initialize[Task[Unit]] = task {
+//    val repo = githubRepo.value
+//    repo.syncMavenCentral(githubPackage.value, version.value, credentials.value, close, githubSyncMavenCentralRetries.value, streams.value.log)
+//  }
 
   private def vcsUrlTask: Initialize[Task[Option[String]]] =
     task {
@@ -183,7 +182,6 @@ object GitHubPlugin extends AutoPlugin {
   // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
   private def dynamicallyGitHubUnpublish: Initialize[Task[Unit]] =
     taskDyn {
-      val repo = githubRepo.value
       val sk = ((skip in publish) ?? false).value
       val s = streams.value
       val ref = thisProjectRef.value
@@ -232,11 +230,11 @@ object GitHubPlugin extends AutoPlugin {
   private def publishToGitHub: Initialize[Option[Resolver]] =
     setting {
       val credsFile = githubCredentialsFile.value
-      val btyOrg = githubOrganization.value
+      val owner = githubOwner.value
       val repoName = githubRepository.value
       val context = GitHubCredentialContext(credsFile)
       // ensure that we have credentials to build a resolver that can publish to github
-      GitHub.withRepo(context, btyOrg, repoName, sLog.value) { repo =>
+      GitHub.withRepo(context, owner, repoName, sLog.value) { repo =>
         repo.buildPublishResolver(githubPackage.value,
           version.value,
           publishMavenStyle.value,
@@ -251,10 +249,10 @@ object GitHubPlugin extends AutoPlugin {
   private def packageVersionsTask: Initialize[Task[Seq[String]]] =
     task {
       val credsFile = githubCredentialsFile.value
-      val btyOrg = githubOrganization.value
+      val owner = githubOwner.value
       val repoName = githubRepository.value
       val context = GitHubCredentialContext(credsFile)
-      GitHub.withRepo(context, btyOrg, repoName, streams.value.log) { repo =>
+      GitHub.withRepo(context, owner, repoName, streams.value.log) { repo =>
         repo.packageVersions(githubPackage.value, streams.value.log)
       }.getOrElse(Nil)
     }

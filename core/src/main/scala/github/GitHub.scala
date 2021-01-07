@@ -37,15 +37,15 @@ object GitHub {
         s"https://api.github.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, true, true)
     )
 
-  def whoami(creds: Option[GitHubCredentials], log: Logger): String =
-    {
-      val is = creds match {
-        case None => "nobody"
-        case Some(GitHubCredentials(user, _)) => user
-      }
-      log.info(is)
-      is
-    }
+//  def whoami(creds: Option[GitHubCredentials], log: Logger): String =
+//    {
+//      val is = creds match {
+//        case None => "nobody"
+//        case Some(GitHubCredentials(user, _)) => user
+//      }
+//      log.info(is)
+//      is
+//    }
 
   private[github] def ensureLicenses(licenses: Seq[(String, URL)], omit: Boolean): Unit =
     {
@@ -58,76 +58,74 @@ object GitHub {
       }
     }
 
-  def withRepo[A](context: GitHubCredentialContext, org: Option[String], repoName: String, log: Logger)
+  def withRepo[A](context: GitHubCredentialContext, owner: String, repoName: String, log: Logger)
     (f: GitHubRepo => A): Option[A] =
     ensuredCredentials(context, log) map { cred =>
-      val repo = cachedRepo(cred, org, repoName)
+      val repo = cachedRepo(cred, owner, repoName)
       f(repo)
     }
 
-  private val repoCache: TrieMap[(GitHubCredentials, Option[String], String), GitHubRepo] = TrieMap()
-  def cachedRepo(credential: GitHubCredentials, org: Option[String], repoName: String): GitHubRepo =
+  private val repoCache: TrieMap[(GitHubToken, String, String), GitHubRepo] = TrieMap()
+  def cachedRepo(credential: GitHubToken, owner: String, repoName: String): GitHubRepo =
     repoCache.synchronized {
       // lock to avoid creating and leaking HTTP client threadpools
       // see: https://github.com/sbt/sbt-github/issues/144
-      repoCache.getOrElseUpdate((credential, org, repoName), GitHubRepo(credential, org, repoName))
+      repoCache.getOrElseUpdate((credential, owner, repoName), GitHubRepo(credential, owner, repoName))
     }
 
   private[github] def ensuredCredentials(
-    context: GitHubCredentialContext, log: Logger): Option[GitHubCredentials] =
+    context: GitHubCredentialContext, log: Logger): Option[GitHubToken] =
       propsCredentials(context)
         .orElse(envCredentials(context))
-        .orElse(GitHubCredentials.read(context.credsFile))
+        .orElse(GitHubToken.read(context.credsFile))
 
   private def propsCredentials(context: GitHubCredentialContext) =
     for {
-      name <- sys.props.get(context.userNameProp)
-      pass <- sys.props.get(context.passProp)
-    } yield GitHubCredentials(name, pass)
+      token <- sys.props.get(context.tokenProp)
+    } yield GitHubToken(token)
 
   private def envCredentials(context: GitHubCredentialContext) =
     for {
-      name <- sys.env.get(context.userNameEnv)
-      pass <- sys.env.get(context.passEnv)
-    } yield GitHubCredentials(name, pass)
+      token <- sys.env.get(context.tokenEnv)
+    } yield GitHubToken(token)
 
-  /** assign credentials or ask for new ones */
-  private[github] def changeCredentials(context: GitHubCredentialContext, log: Logger): Unit =
-    GitHub.ensuredCredentials(context, Logger.Null) match {
-      case None =>
-        saveGitHubCredentials(context.credsFile)(requestCredentials(), log)
-      case Some(GitHubCredentials(user, pass)) =>
-        saveGitHubCredentials(context.credsFile)(requestCredentials(Some(user), Some(pass)), log)
-    }
+//  /** assign credentials or ask for new ones */
+//  private[github] def changeCredentials(context: GitHubCredentialContext, log: Logger): Unit =
+//    GitHub.ensuredCredentials(context, Logger.Null) match {
+//      case None =>
+//        saveGitHubCredentials(context.credsFile)(requestCredentials(), log)
+//      case Some(GitHubCredentials(user, pass)) =>
+//        saveGitHubCredentials(context.credsFile)(requestCredentials(Some(user), Some(pass)), log)
+//    }
 
-  private[github] def buildResolvers(creds: Option[GitHubCredentials], org: Option[String], repoName: String, mavenStyle: Boolean): Seq[Resolver] =
+  private[github] def buildResolvers(creds: Option[GitHubToken], owner: String, repoName: String, mavenStyle: Boolean): Seq[Resolver] =
     creds.map {
-      case GitHubCredentials(user, _) => Seq(
-        if (mavenStyle) Resolver.githubRepo(org.getOrElse(user), repoName)
-        else Resolver.githubIvyRepo(org.getOrElse(user), repoName)
+      case GitHubToken(_) => Seq(
+        if (mavenStyle) Resolver.githubRepo(owner, repoName)
+        else Resolver.githubIvyRepo(owner, repoName)
       )
     } getOrElse Nil
 
-  private def saveGitHubCredentials(to: File)(creds: (String, String), log: Logger) = {
-    log.info(s"saving credentials to $to")
-    val (name, pass) = creds
-    GitHubCredentials.writeGitHub(name, pass, to)
-    log.info("reload project for sbt setting `publishTo` to take effect")
-  }
+//  private def saveGitHubCredentials(to: File)(creds: (String, String), log: Logger) = {
+//    log.info(s"saving credentials to $to")
+//    val (name, pass) = creds
+//    GitHubCredentials.writeGitHub(name, pass, to)
+//    log.info("reload project for sbt setting `publishTo` to take effect")
+//  }
 
-  // todo: generalize this for both github & sonatype credential prompts
-  private def requestCredentials(
-    defaultName: Option[String] = None,
-    defaultKey: Option[String] = None): (String, String) = {
-    val name = Prompt("Enter github username%s" format defaultName.map(" (%s)".format(_)).getOrElse("")).orElse(defaultName).getOrElse {
-      sys.error("github username required")
-    }
-    val pass = Prompt.descretely("Enter github API key %s" format defaultKey.map(_ => "(use current)").getOrElse("(under https://github.com/profile/edit)"))
-        .orElse(defaultKey).getOrElse {
-          sys.error("github API key required")
-        }
-    (name, pass)
-  }
+//  // todo: generalize this for both github & sonatype credential prompts
+//  private def requestCredentials(
+//    defaultName: Option[String] = None,
+//    defaultKey: Option[String] = None): (String, String) = {
+//    val name = Prompt("Enter github username%s" format defaultName.map(" (%s)".format(_)).getOrElse("")).orElse(defaultName).getOrElse {
+//      sys.error("github username required")
+//    }
+//    val pass = Prompt.descretely("Enter github API key %s" format defaultKey.map(_ => "(use current)").getOrElse("(under https://github.com/profile/edit)"))
+//        .orElse(defaultKey).getOrElse {
+//          sys.error("github API key required")
+//        }
+//    (name, pass)
+//  }
 
   private[github] object await {
     import scala.concurrent.{ Await, Future }

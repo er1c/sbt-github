@@ -7,8 +7,8 @@ import scala.concurrent.duration._
 trait GitHubRemoteCacheKeys {
   val githubRemoteCacheCredentialsFile = settingKey[File](
     "File containing github api credentials")
-  val githubRemoteCacheOrganization = settingKey[String](
-    "GitHub organization name to push to")
+  val githubRemoteCacheOwner = settingKey[String](
+    "GitHub user or organization name to push to")
   val githubRemoteCacheRepository = settingKey[String](
     "GitHub repository to publish to (default: remote-cache)")
   val githubRemoteCachePackage = settingKey[String](

@@ -1,15 +1,19 @@
 lazy val unusedWarnings = Seq("-Ywarn-unused-import", "-Ywarn-unused")
 
-ThisBuild / organization := "org.foundweekends"
-ThisBuild / homepage     := Some(url("https://github.com/sbt/sbt-bintray"))
+ThisBuild / organization := "com.github.er1c"
+ThisBuild / homepage     := Some(url("https://github.com/er1c/sbt-github"))
 ThisBuild / licenses     := Seq("MIT" ->
-  url(s"https://github.com/sbt/${name.value}/blob/${version.value}/LICENSE"))
+  url(s"https://github.com/er1c/${name.value}/blob/${version.value}/LICENSE"))
 ThisBuild / description  := "package publisher for github.com"
 ThisBuild / developers   := List(
   Developer("softprops", "Doug Tangren", "@softprops", url("https://github.com/softprops"))
 )
-ThisBuild / scmInfo      := Some(ScmInfo(url(s"https://github.com/sbt/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
+ThisBuild / scmInfo      := Some(ScmInfo(url(s"https://github.com/er1c/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
 ThisBuild / scalaVersion := "2.12.12"
+
+ThisBuild / githubOrganization := Some("er1c")
+ThisBuild / githubRepository := "sbt-github"
+ThisBuild / githubPackage := "sbt-github"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
     scalacOptions ++= Seq(Opts.compile.deprecation, "-Xlint", "-feature"),
@@ -17,9 +21,10 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
       case Some((2, v)) if v >= 11 => unusedWarnings
     }.toList.flatten,
     publishArtifact in Test := false,
-    bintrayRepository := "sbt-plugin-releases",
-    bintrayOrganization := Some("sbt"),
-    bintrayPackage := "sbt-github",
+
+//    bintrayRepository := "sbt-plugin-releases",
+//    bintrayOrganization := Some("sbt"),
+//    bintrayPackage := "sbt-github",
     scriptedBufferLog := true,
     scriptedLaunchOpts ++= Seq(
       "-Xmx1024M",

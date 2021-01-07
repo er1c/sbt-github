@@ -11,10 +11,10 @@ trait GitHubKeys {
     "Releases a version of package on github")
 
   val githubReleaseOnPublish = settingKey[Boolean](
-    "When set to true, publish also runs githubRelease.")
+    "When set to true, publish also runs githubRelease")
 
-  val githubOrganization = settingKey[Option[String]](
-    "GitHub organization name to publish to. Defaults to None unless project is an sbtPlugin")
+  val githubOwner = settingKey[String](
+    "GitHub user or organization name")
 
   val githubPackage = settingKey[String](
     "GitHub package name")
@@ -49,7 +49,7 @@ trait GitHubKeys {
   val githubEnsureLicenses = taskKey[Unit](
     "Ensure that the licenses for github are valid.")
 
-  val githubEnsureCredentials = taskKey[GitHubCredentials](
+  val githubEnsureCredentials = taskKey[GitHubToken](
     "Ensure that the credentials for github are valid.")
 
   val githubEnsureGitHubPackageExists = taskKey[Unit](
