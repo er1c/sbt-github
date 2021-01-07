@@ -1,6 +1,5 @@
 package github
 
-import bintry.Attr
 import sbt.{ AutoPlugin, Credentials, Global, Path, Resolver, Setting, Task, Tags, ThisBuild }
 import sbt.Classpaths.publishTask
 import sbt.Def.{ Initialize, setting, task, taskDyn }
@@ -52,23 +51,29 @@ object GitHubPlugin extends AutoPlugin {
   )
 
   def buildPublishSettings: Seq[Setting[_]] = Seq(
-    githubOrganization in ThisBuild := None,
+    githubOwner in ThisBuild := None,
     githubVcsUrl in ThisBuild := vcsUrlTask.value,
     githubReleaseOnPublish in ThisBuild := true
   )
 
   def githubPublishSettings: Seq[Setting[_]] = githubCommonSettings ++ Seq(
     githubPackage := moduleName.value,
-    githubRepo := GitHub.cachedRepo(githubEnsureCredentials.value,
-      githubOrganization.value,
-      githubRepository.value),
+    githubPackageName := githubPackageNameTask.value,
+    githubRepo := GitHub.cachedRepo(
+      githubEnsureCredentials.value,
+      githubOwner.value,
+      githubOwnerType.value,
+      githubRepository.value
+    ),
+    githubOwnerType := GitHubOwnerType.User,
     // todo: don't force this to be sbt-plugin-releases
     githubRepository := {
       if (sbtPlugin.value) GitHub.defaultSbtPluginRepository
       else GitHub.defaultMavenRepository
     },
     publishMavenStyle := {
-      if (sbtPlugin.value) false else publishMavenStyle.value
+      if (sbtPlugin.value) false
+      else publishMavenStyle.value
     },
     githubPackageLabels := Nil,
     description in github := description.value,
@@ -79,51 +84,39 @@ object GitHubPlugin extends AutoPlugin {
     resolvers in github := {
       val context = GitHubCredentialContext(githubCredentialsFile.value)
       GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
-        githubOrganization.value,
+        githubOwner.value,
         githubRepository.value,
-        publishMavenStyle.value
+        publishMavenStyle.value,
+        sLog.value
       )
     },
     credentials in github := {
       Seq(githubCredentialsFile.value).filter(_.exists).map(Credentials.apply)
     },
-    githubPackageAttributes := {
-      if (sbtPlugin.value) Map(AttrNames.sbtPlugin -> Seq(Attr.Boolean(sbtPlugin.value)))
-      else Map.empty
-    },
-    githubVersionAttributes := {
-      val scalaVersions = crossScalaVersions.value
-      val sv = Map(AttrNames.scalas -> scalaVersions.map(Attr.Version))
-      if (sbtPlugin.value) sv ++ Map(AttrNames.sbtVersion-> Seq(Attr.Version(sbtVersion.value)))
-      else sv
-    },
+
     githubOmitLicense := {
       if (sbtPlugin.value) sbtPlugin.value
       else false
-    },
-    githubEnsureLicenses := {
-      GitHub.ensureLicenses(licenses.value, githubOmitLicense.value)
     },
     githubEnsureCredentials := {
       val context = GitHubCredentialContext(githubCredentialsFile.value)
       GitHub.ensuredCredentials(context, streams.value.log).getOrElse {
         sys.error(s"Missing github credentials. " +
           s"Either create a credentials file with the githubChangeCredentials task, " +
-          s"set the BINTRAY_USER and BINTRAY_PASS environment variables or " +
-          s"pass github.user and github.pass properties to sbt.")
+          s"set the GITHUB_TOKEN environment variables or " +
+          s"pass github.token properties to sbt.")
       }
     },
-    githubEnsureGitHubPackageExists := ensurePackageTask.value,
     githubUnpublish := dynamicallyGitHubUnpublish.value,
     githubRemoteSign := {
       val repo = githubRepo.value
       repo.remoteSign(githubPackage.value, version.value, streams.value.log)
     },
-    githubSyncMavenCentral := syncMavenCentral(close = true).value,
-    githubSyncSonatypeStaging := syncMavenCentral(close = false).value,
+//    githubSyncMavenCentral := syncMavenCentral(close = true).value,
+//    githubSyncSonatypeStaging := syncMavenCentral(close = false).value,
     githubSyncMavenCentralRetries := Seq.empty,
     githubRelease := {
-      val _ = publishVersionAttributesTask.value
+      //val _ = publishVersionAttributesTask.value
       val repo = githubRepo.value
       repo.release(githubPackage.value, version.value, streams.value.log)
     }
@@ -147,10 +140,10 @@ object GitHubPlugin extends AutoPlugin {
     publish := dynamicallyPublish.value
   )
 
-  private def syncMavenCentral(close: Boolean): Initialize[Task[Unit]] = task {
-    val repo = githubRepo.value
-    repo.syncMavenCentral(githubPackage.value, version.value, credentials.value, close, githubSyncMavenCentralRetries.value, streams.value.log)
-  }
+//  private def syncMavenCentral(close: Boolean): Initialize[Task[Unit]] = task {
+//    val repo = githubRepo.value
+//    repo.syncMavenCentral(githubPackage.value, version.value, credentials.value, close, githubSyncMavenCentralRetries.value, streams.value.log)
+//  }
 
   private def vcsUrlTask: Initialize[Task[Option[String]]] =
     task {
@@ -166,11 +159,13 @@ object GitHubPlugin extends AutoPlugin {
       val s = streams.value
       val ref = thisProjectRef.value
 
-      if (!isEnabledViaProp) publishTask(publishConfiguration, deliver)
-      else if (sk) Def.task {
+      if (!isEnabledViaProp) {
+        publishTask(publishConfiguration, deliver)
+      } else if (sk) Def.task {
         s.log.debug(s"skipping publish for ${ref.project}")
+      } else {
+        dynamicallyPublish0
       }
-      else dynamicallyPublish0
     }
 
   private def dynamicallyPublish0: Initialize[Task[Unit]] =
@@ -183,7 +178,6 @@ object GitHubPlugin extends AutoPlugin {
   // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
   private def dynamicallyGitHubUnpublish: Initialize[Task[Unit]] =
     taskDyn {
-      val repo = githubRepo.value
       val sk = ((skip in publish) ?? false).value
       val s = streams.value
       val ref = thisProjectRef.value
@@ -204,46 +198,17 @@ object GitHubPlugin extends AutoPlugin {
       log.warn("You must run githubRelease once all artifacts are staged.")
     }
 
-  private def publishVersionAttributesTask: Initialize[Task[Unit]] =
-    task {
-      val repo = githubRepo.value
-      repo.publishVersionAttributes(
-        githubPackage.value,
-        version.value,
-        githubVersionAttributes.value)
-    }
-
-  private def ensurePackageTask: Initialize[Task[Unit]] =
-    task {
-      val vcs = githubVcsUrl.value.getOrElse {
-        sys.error("""githubVcsUrl not defined. assign this with githubVcsUrl := Some("git@github.com:you/your-repo.git")""")
-      }
-      val repo = githubRepo.value
-      repo.ensurePackage(githubPackage.value,
-        githubPackageAttributes.value,
-        (description in github).value,
-        vcs,
-        licenses.value,
-        githubPackageLabels.value,
-        streams.value.log)
-    }
-
   /** set a user-specific github endpoint for sbt's `publishTo` setting.*/
   private def publishToGitHub: Initialize[Option[Resolver]] =
     setting {
       val credsFile = githubCredentialsFile.value
-      val btyOrg = githubOrganization.value
+      val owner = githubOwner.value
       val repoName = githubRepository.value
+      val ownerType = githubOwnerType.value
       val context = GitHubCredentialContext(credsFile)
       // ensure that we have credentials to build a resolver that can publish to github
-      GitHub.withRepo(context, btyOrg, repoName, sLog.value) { repo =>
-        repo.buildPublishResolver(githubPackage.value,
-          version.value,
-          publishMavenStyle.value,
-          sbtPlugin.value,
-          githubReleaseOnPublish.value,
-          sLog.value
-        )
+      GitHub.withRepo(context, owner, ownerType, repoName, sLog.value) { repo =>
+        repo.buildPublishResolver(publishMavenStyle.value)
       }
     }
 
@@ -251,11 +216,46 @@ object GitHubPlugin extends AutoPlugin {
   private def packageVersionsTask: Initialize[Task[Seq[String]]] =
     task {
       val credsFile = githubCredentialsFile.value
-      val btyOrg = githubOrganization.value
+      val owner = githubOwner.value
       val repoName = githubRepository.value
       val context = GitHubCredentialContext(credsFile)
-      GitHub.withRepo(context, btyOrg, repoName, streams.value.log) { repo =>
-        repo.packageVersions(githubPackage.value, streams.value.log)
+      val fullPackageName = githubPackageName.value
+      val ownerType = githubOwnerType.value
+      streams.value.log.error(s"packageVersionTask - fullPackageName: $fullPackageName")
+      GitHub.withRepo(context, owner, ownerType, repoName, streams.value.log) { repo =>
+        repo.packageVersions(fullPackageName, streams.value.log)
       }.getOrElse(Nil)
+    }
+
+
+  /** Lists github package name (full w/org and bin versions) corresponding to the current project */
+  private def githubPackageNameTask: Initialize[Task[String]] =
+    task {
+
+      val projectModuleId: ModuleID = projectID.value
+      val projectArtifact: Artifact = artifact.value
+      val projectGroupId: String = organization.value
+      val projectScalaBinaryVersion: String = scalaBinaryVersion.value
+      val isCrossPathsEnabled: Boolean = crossPaths.value
+      val isSbtPlugin: Boolean = sbtPlugin.value
+
+      if (isSbtPlugin) {
+        val base = s"$projectGroupId.${projectArtifact.name}_$projectScalaBinaryVersion"
+        projectScalaBinaryVersion match {
+          case "2.10" => s"${base}_0.13"
+          case "2.12" => s"${base}_1.0"
+        }
+      } else if (isCrossPathsEnabled) {
+        val (prefix, suffix) = projectModuleId.crossVersion match {
+          case _: librarymanagement.Disabled => ("", "")
+          case _: librarymanagement.Constant => ???
+          case _: librarymanagement.Patch => ???
+          case binary: librarymanagement.Binary => (binary.prefix, binary.suffix)
+        }
+
+        s"$projectGroupId.${projectArtifact.name}_$prefix$projectScalaBinaryVersion$suffix"
+      } else {
+        s"$projectGroupId.${projectArtifact.name}"
+      }
     }
 }

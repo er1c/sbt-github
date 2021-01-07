@@ -2,6 +2,8 @@
 
 WIP - forking/refactoring `sbt-bintray` for GitHub support
 
+- Requirements: sbt `0.13.7`+ or `1.2.1`+
+
 ------
 
 # sbt-bintray [![scaladex-badge][]][scaladex] [![travis-badge][]][travis] [![gitter-badge][]][gitter]

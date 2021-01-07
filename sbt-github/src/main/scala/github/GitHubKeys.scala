@@ -11,25 +11,22 @@ trait GitHubKeys {
     "Releases a version of package on github")
 
   val githubReleaseOnPublish = settingKey[Boolean](
-    "When set to true, publish also runs githubRelease.")
+    "When set to true, publish also runs githubRelease")
 
-  val githubOrganization = settingKey[Option[String]](
-    "GitHub organization name to publish to. Defaults to None unless project is an sbtPlugin")
+  val githubOwner = settingKey[Option[String]](
+    "GitHub user or organization name, default None.")
+
+  val githubOwnerType = settingKey[GitHubOwnerType](
+    "GitHub owner type (GitHubOwnerType.User or GitHubOwnerType.Org), default GitHubOwnerType.User.")
 
   val githubPackage = settingKey[String](
-    "GitHub package name")
+    "GitHub package name, default moduleName.value.")
 
   val githubRepository = settingKey[String](
     "GitHub repository to publish to. Defaults to 'maven' unless project is an sbtPlugin")
 
   val githubPackageLabels = settingKey[Seq[String]](
     "List of labels associated with your github package")
-
-  val githubPackageAttributes = settingKey[AttrMap](
-    "List of github package metadata attributes")
-
-  val githubVersionAttributes = settingKey[AttrMap](
-    "List of github version metadata attributes")
 
   val githubCredentialsFile = settingKey[File](
     "File containing github api credentials")
@@ -86,7 +83,9 @@ object GitHubKeys extends GitHubKeys {}
 
 trait InternalGitHubKeys {
   val githubRepo = taskKey[GitHubRepo](
-    "GitHub repository.")
+    "GitHub repository: GitHubRepo.")
+  val githubPackageName = taskKey[String](
+    "GitHub full package_name.")
 }
 
 object InternalGitHubKeys extends InternalGitHubKeys {}

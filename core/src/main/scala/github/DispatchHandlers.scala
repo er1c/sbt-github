@@ -1,6 +1,6 @@
 package github
 
-import dispatch.FunctionHandler
+import dispatch._
 
 trait DispatchHandlers {
   def asStatusAndBody =

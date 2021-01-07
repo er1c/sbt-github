@@ -25,19 +25,20 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     pushRemoteCacheTo := publishToGitHubSetting.value,
     remoteCacheResolvers := {
-      val btyOrg = githubRemoteCacheOrganization.value
+      val owner = githubRemoteCacheOwner.value
       val repoName = githubRemoteCacheRepository.value
-      List(Resolver.githubRepo(btyOrg, repoName))
+      List(Resolver.githubRepo(owner, repoName))
     },
   )
 
   def publishToGitHubSetting =
     Def.setting {
       val credsFile = githubRemoteCacheCredentialsFile.value
-      val btyOrg = githubRemoteCacheOrganization.value
+      val owner = githubRemoteCacheOwner.value
       val repoName = githubRemoteCacheRepository.value
       val context = GitHubCredentialContext.remoteCache(credsFile)
-      GitHub.withRepo(context, Some(btyOrg), repoName, sLog.value) { repo =>
+      val ownerType = githubRemoteCacheOwnerType.value
+      GitHub.withRepo(context, Some(owner), ownerType, repoName, sLog.value) { repo =>
         repo.buildRemoteCacheResolver(githubRemoteCachePackage.value, sLog.value)
       }
     }
@@ -45,14 +46,15 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
   def packageCleanOldVersionsTask: Def.Initialize[Task[Unit]] =
     Def.task {
       val credsFile = githubRemoteCacheCredentialsFile.value
-      val btyOrg = githubRemoteCacheOrganization.value
+      val owner = githubRemoteCacheOwner.value
+      val ownerType = githubRemoteCacheOwnerType.value
       val repoName = githubRemoteCacheRepository.value
       val context = GitHubCredentialContext.remoteCache(credsFile)
       val pkg = githubRemoteCachePackage.value
       val s = streams.value
       val min = githubRemoteCacheMinimum.value
       val ttl = githubRemoteCacheTtl.value
-      GitHub.withRepo(context, Some(btyOrg), repoName, s.log) { repo =>
+      GitHub.withRepo(context, Some(owner), ownerType, repoName, s.log) { repo =>
         repo.cleandOldVersions(pkg, min, ttl, s.log)
       }
     }
