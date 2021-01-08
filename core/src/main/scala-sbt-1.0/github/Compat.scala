@@ -1,8 +1,7 @@
 package github
 
-import scala.language.reflectiveCalls
-
 import sbt.librarymanagement.RawRepository
+import scala.language.reflectiveCalls
 
 object RawRepository {
   def apply(resolver: AnyRef): RawRepository =

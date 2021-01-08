@@ -11,9 +11,11 @@ ThisBuild / developers   := List(
 ThisBuild / scmInfo      := Some(ScmInfo(url(s"https://github.com/er1c/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
 ThisBuild / scalaVersion := "2.12.12"
 
-ThisBuild / githubOrganization := Some("er1c")
+ThisBuild / githubOwner := "er1c"
 ThisBuild / githubRepository := "sbt-github"
 ThisBuild / githubPackage := "sbt-github"
+
+val dispatchVersion = "1.2.0"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
     scalacOptions ++= Seq(Opts.compile.deprecation, "-Xlint", "-feature"),
@@ -49,7 +51,8 @@ lazy val core = (project in file("core"))
   .settings(
     name := "sbt-github-core",
     libraryDependencies ++= Seq(
-      "org.foundweekends" %% "bintry" % "0.6.0",
+      "org.dispatchhttp"        %% "dispatch-core"   % "1.2.0",
+      //"org.dispatchhttp" %% "dispatch-json4s-native" % "1.1.3",
       "org.slf4j" % "slf4j-nop" % "1.7.28", // https://github.com/sbt/sbt-bintray/issues/26
       "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test,
     ),

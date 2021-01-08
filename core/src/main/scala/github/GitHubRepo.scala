@@ -13,8 +13,7 @@ case class GitHubRepo(credential: GitHubToken, owner: String, repoName: String) 
   import dispatch.as
 
   lazy val http: Http = Http(Http.defaultClientBuilder)
-  lazy val GitHubToken(apiKey) = credential
-  lazy val client: Client = Client(apiKey, apiKey, http)
+  lazy val client: Client = Client(credential.apiKey, credential.apiKey, http)
   lazy val repo: Client#Repo = client.repo(owner, repoName)
 
   def close(): Unit = http.shutdown()

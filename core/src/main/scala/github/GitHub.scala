@@ -1,7 +1,7 @@
 package github
 
 import sbt._
-import bintry.{ Licenses, Client }
+//import bintry.{ Licenses, Client }
 import scala.util.Try
 import scala.collection.concurrent.TrieMap
 
@@ -23,7 +23,7 @@ object GitHub {
         case (true, _) =>
           GitHubMavenResolver(
             s"GitHub-Maven-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
-            s"https://api.github.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, release, ignoreExists = false)
+            s"https://maven.pkg.github.com/${repo.repo}/${pkg.name}", pkg, release, ignoreExists = false)
         case (false, _) =>
           GitHubIvyResolver(
             s"GitHub-${if (isSbtPlugin) "Sbt" else "Ivy"}-Publish-${repo.subject}-${repo.repo}-${pkg.name}",
@@ -34,7 +34,7 @@ object GitHub {
     RawRepository(
       GitHubMavenResolver(
         s"GitHub-Remote-Cache-${repo.subject}-${repo.repo}-${pkg.name}",
-        s"https://api.github.com/maven/${repo.subject}/${repo.repo}/${pkg.name}", pkg, true, true)
+        s"https://maven.pkg.github.com/${repo.repo}/${pkg.name}", pkg, true, true)
     )
 
 //  def whoami(creds: Option[GitHubCredentials], log: Logger): String =
