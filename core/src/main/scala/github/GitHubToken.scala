@@ -26,13 +26,6 @@ object GitHubToken {
     //val template = templateSrc(Realm, Host)_
   }
 
-  /** sonatype oss (for mvn central sync) */
-  object sonatype {
-    val Host = "oss.sonatype.org"
-    val Realm = "Sonatype Nexus Repository Manager"
-    //val template = templateSrc(Realm, Host)_
-  }
-
   def read(path: File): Option[GitHubToken] =
     path match {
       case creds if creds.exists =>

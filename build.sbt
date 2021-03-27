@@ -1,32 +1,30 @@
 lazy val unusedWarnings = Seq("-Ywarn-unused-import", "-Ywarn-unused")
 
-ThisBuild / organization := "com.github.er1c"
+ThisBuild / organization := "io.github.er1c"
 ThisBuild / homepage     := Some(url("https://github.com/er1c/sbt-github"))
-ThisBuild / licenses     := Seq("MIT" ->
-  url(s"https://github.com/er1c/${name.value}/blob/${version.value}/LICENSE"))
+ThisBuild / licenses     := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / description  := "package publisher for github.com"
-ThisBuild / developers   := List(
-  Developer("softprops", "Doug Tangren", "@softprops", url("https://github.com/softprops"))
-)
+ThisBuild / developers   := List(Developer(id = "ericpeters", name = "Eric Peters", email = "eric@peters.org", url("https://github.com/er1c")))
 ThisBuild / scmInfo      := Some(ScmInfo(url(s"https://github.com/er1c/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
 ThisBuild / scalaVersion := "2.12.12"
 
-ThisBuild / githubOwner := "er1c"
-ThisBuild / githubRepository := "sbt-github"
-ThisBuild / githubPackage := "sbt-github"
-
-val dispatchVersion = "1.2.0"
+val CalibanVersion = "0.9.5"
+val SttpVersion = "3.2.0"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-    scalacOptions ++= Seq(Opts.compile.deprecation, "-Xlint", "-feature"),
-    scalacOptions ++= PartialFunction.condOpt(CrossVersion.partialVersion(scalaVersion.value)){
-      case Some((2, v)) if v >= 11 => unusedWarnings
-    }.toList.flatten,
-    publishArtifact in Test := false,
+  scalacOptions ++= Seq(Opts.compile.deprecation, "-Xlint", "-feature"),
+  scalacOptions ++= PartialFunction.condOpt(CrossVersion.partialVersion(scalaVersion.value)){
+    case Some((2, v)) if v >= 11 => unusedWarnings
+  }.toList.flatten,
+  libraryDependencies ++= Seq(
+    "io.github.er1c" %% "caliban-github-api-client" % "0.9.5-1",
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend" % SttpVersion, // async-http-client-backend-zio
+    //"org.asynchttpclient" % "async-http-client" % "2.12.2",
+    "com.github.ghostdogpr" %% "caliban-http4s" % CalibanVersion,
+    "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test,
+  ),
 
-//    bintrayRepository := "sbt-plugin-releases",
-//    bintrayOrganization := Some("sbt"),
-//    bintrayPackage := "sbt-github",
+  publishArtifact in Test := false,
     scriptedBufferLog := true,
     scriptedLaunchOpts ++= Seq(
       "-Xmx1024M",
@@ -51,9 +49,10 @@ lazy val core = (project in file("core"))
   .settings(
     name := "sbt-github-core",
     libraryDependencies ++= Seq(
-      "org.dispatchhttp"        %% "dispatch-core"   % "1.2.0",
-      //"org.dispatchhttp" %% "dispatch-json4s-native" % "1.1.3",
-      "org.slf4j" % "slf4j-nop" % "1.7.28", // https://github.com/sbt/sbt-bintray/issues/26
+      "io.github.er1c" %% "caliban-github-api-client" % "0.9.5-1",
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend" % SttpVersion, // async-http-client-backend-zio
+      //"org.asynchttpclient" % "async-http-client" % "2.12.2",
+      "com.github.ghostdogpr" %% "caliban-http4s" % CalibanVersion,
       "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test,
     ),
     testFrameworks += new TestFramework("verify.runner.Framework"),

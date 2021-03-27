@@ -25,11 +25,11 @@ trait GitHubKeys {
   val githubPackageLabels = settingKey[Seq[String]](
     "List of labels associated with your github package")
 
-  val githubPackageAttributes = settingKey[AttrMap](
-    "List of github package metadata attributes")
-
-  val githubVersionAttributes = settingKey[AttrMap](
-    "List of github version metadata attributes")
+//  val githubPackageAttributes = settingKey[AttrMap](
+//    "List of github package metadata attributes")
+//
+//  val githubVersionAttributes = settingKey[AttrMap](
+//    "List of github version metadata attributes")
 
   val githubCredentialsFile = settingKey[File](
     "File containing github api credentials")
@@ -83,10 +83,3 @@ trait GitHubKeys {
 }
 
 object GitHubKeys extends GitHubKeys {}
-
-trait InternalGitHubKeys {
-  val githubRepo = taskKey[GitHubRepo](
-    "GitHub repository.")
-}
-
-object InternalGitHubKeys extends InternalGitHubKeys {}

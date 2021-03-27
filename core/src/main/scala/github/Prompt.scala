@@ -3,7 +3,7 @@ package github
 import sbt.SimpleReader
 
 object Prompt {
-  def opt(s: String) = s.trim match {
+  def opt(s: String): Option[String] = s.trim match {
     case e if (e.isEmpty) => None
     case s => Some(s)
   }
