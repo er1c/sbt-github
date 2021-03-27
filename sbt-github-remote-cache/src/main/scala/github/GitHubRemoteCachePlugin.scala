@@ -8,7 +8,7 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
   override def requires: JvmPlugin.type = JvmPlugin
   override def trigger: PluginTrigger = allRequirements
 
-  object autoImport extends GitHubRemoteCacheKeys
+  object autoImport extends GitHubRemoteCacheKeys with GitHubResolverSyntax
   import autoImport._
 
   override lazy val globalSettings: Seq[Setting[_]] = Seq(
@@ -28,8 +28,7 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
     remoteCacheResolvers := {
       val owner = githubRemoteCacheOwner.value
       val repoName = githubRemoteCacheRepository.value
-      //List(Resolver.githubRepo(owner, repoName))
-      ???
+      List(Resolver.githubRepo(owner, repoName))
     },
   )
 

@@ -18,7 +18,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   }.toList.flatten,
   libraryDependencies ++= Seq(
     "io.github.er1c" %% "caliban-github-api-client" % "0.9.5-1",
-    "com.softwaremill.sttp.client3" %% "async-http-client-backend" % SttpVersion, // async-http-client-backend-zio
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend-future" % SttpVersion, // async-http-client-backend-zio
     //"org.asynchttpclient" % "async-http-client" % "2.12.2",
     "com.github.ghostdogpr" %% "caliban-http4s" % CalibanVersion,
     "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test,

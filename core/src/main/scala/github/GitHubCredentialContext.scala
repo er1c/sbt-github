@@ -7,22 +7,28 @@ import java.io.File
  */
 case class GitHubCredentialContext(
   credsFile: File,
-  tokenProp: String,
-  tokenEnv: String,
+  userNameProp: String,
+  passwordProp: String,
+  userNameEnv: String,
+  passwordEnv: String
 )
 
 object GitHubCredentialContext {
   def apply(credsFile: File): GitHubCredentialContext =
     GitHubCredentialContext(
       credsFile,
+      "github.user",
       "github.token",
-      "GITHUB_TOKEN",
+      "GITHUB_USER",
+      "GITHUB_TOKEN"
     )
 
   def remoteCache(credsFile: File): GitHubCredentialContext =
     GitHubCredentialContext(
       credsFile,
+      "github.remote.cache.user",
       "github.remote.cache.token",
-      "GITHUB_REMOTE_CACHE_TOKEN",
+      "GITHUB_REMOTE_CACHE_USER",
+      "GITHUB_REMOTE_CACHE_TOKEN"
     )
 }

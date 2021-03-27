@@ -49,7 +49,7 @@ trait GitHubKeys {
   val githubEnsureLicenses = taskKey[Unit](
     "Ensure that the licenses for github are valid.")
 
-  val githubEnsureCredentials = taskKey[GitHubToken](
+  val githubEnsureCredentials = taskKey[GitHubCredentials](
     "Ensure that the credentials for github are valid.")
 
   val githubEnsureGitHubPackageExists = taskKey[Unit](
