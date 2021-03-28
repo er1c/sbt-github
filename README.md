@@ -11,3 +11,4 @@ Usage and design inspired by [sbt-bintray](https://index.scala-lang.org/sbt/sbt-
 
 * [sbt-github-packages](https://github.com/djspiewak/sbt-github-packages/tree/master/src/main/scala/sbtghpackages)
 * [sbt-bintray](https://github.com/sbt/sbt-bintray)
+* [Caliban GitHub Query Client Example](https://github.com/fokot/caliban-talk/blob/master/src/main/scala/example/GithubQuery.scala)
