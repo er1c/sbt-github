@@ -11,12 +11,10 @@ ThisBuild / githubWorkflowOSes  := Seq("ubuntu-latest", "macos-latest", "windows
 ThisBuild / githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "scripted")))
 
 // dummy publication just to test that setup works
-ThisBuild / githubWorkflowPublishTargetBranches :=
-  Seq(RefPredicate.Equals(Ref.Branch("main")))
-
+ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.Equals(Ref.Branch("main")))
 ThisBuild / githubWorkflowPublish := Seq()
 
-// Update ci via sbt githubWorkflowGenerate
+// Update ci via `sbt githubWorkflowGenerate`
 
 val CalibanVersion = "0.9.5"
 val SttpVersion = "3.2.0"
