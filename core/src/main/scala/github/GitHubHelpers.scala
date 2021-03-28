@@ -13,7 +13,7 @@ object GitHubHelpers {
     import scala.concurrent.{ Await, Future }
     import scala.concurrent.duration.Duration
 
-    def result[T](f: => Future[T]) = Await.result(f, Duration.Inf)
+    def result[T](f: => Future[T]): T = Await.result(f, Duration.Inf)
     def ready[T](f: => Future[T]) = Await.ready(f, Duration.Inf)
   }
 
@@ -28,7 +28,7 @@ trait GitHubHelpers {
 
   protected def runRequest[A](query: SelectionBuilder[Operations.RootQuery, A]): Future[A] =
     backend
-      .send(query.toRequest(uri))
+      .send(query.toRequest(uri).header("Authorization", s"Bearer ${credentials.token}"))
       .map(_.body)
       .flatMap(handleError)
 
@@ -41,5 +41,4 @@ trait GitHubHelpers {
   }
 
   def close(): Unit = await.ready(backend.close())
-
 }
