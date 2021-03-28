@@ -1,4 +1,7 @@
+
 # sbt-github
+
+[![Continuous Integration](https://github.com/er1c/sbt-github/actions/workflows/ci.yml/badge.svg)](https://github.com/er1c/sbt-github/actions/workflows/ci.yml)
 
 An sbt plugin for publishing [github](https://github.com) packages.
 
