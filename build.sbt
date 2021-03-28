@@ -1,12 +1,22 @@
 lazy val unusedWarnings = Seq("-Ywarn-unused-import", "-Ywarn-unused")
 
-ThisBuild / organization := "io.github.er1c"
-ThisBuild / homepage     := Some(url("https://github.com/er1c/sbt-github"))
-ThisBuild / licenses     := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
-ThisBuild / description  := "package publisher for github.com"
-ThisBuild / developers   := List(Developer(id = "ericpeters", name = "Eric Peters", email = "eric@peters.org", url("https://github.com/er1c")))
-ThisBuild / scmInfo      := Some(ScmInfo(url(s"https://github.com/er1c/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
-ThisBuild / scalaVersion := "2.12.12"
+ThisBuild / organization        := "io.github.er1c"
+ThisBuild / homepage            := Some(url("https://github.com/er1c/sbt-github"))
+ThisBuild / licenses            := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / description         := "package publisher for github.com"
+ThisBuild / developers          := List(Developer(id = "ericpeters", name = "Eric Peters", email = "eric@peters.org", url("https://github.com/er1c")))
+ThisBuild / scmInfo             := Some(ScmInfo(url(s"https://github.com/er1c/${name.value}"), s"git@github.com:sbt/${name.value}.git"))
+ThisBuild / scalaVersion        := "2.12.12"
+ThisBuild / githubWorkflowOSes  := Seq("ubuntu-latest", "macos-latest", "windows-latest")
+ThisBuild / githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "scripted")))
+
+// dummy publication just to test that setup works
+ThisBuild / githubWorkflowPublishTargetBranches :=
+  Seq(RefPredicate.Equals(Ref.Branch("main")))
+
+ThisBuild / githubWorkflowPublish := Seq()
+
+// Update ci via sbt githubWorkflowGenerate
 
 val CalibanVersion = "0.9.5"
 val SttpVersion = "3.2.0"
@@ -25,12 +35,12 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   ),
 
   publishArtifact in Test := false,
-    scriptedBufferLog := true,
+    scriptedBufferLog := false,
     scriptedLaunchOpts ++= Seq(
       "-Xmx1024M",
       "-XX:MaxPermSize=256M",
       "-Dgithub.user=username",
-      "-Dgithub.pass=password",
+      "-Dgithub.token=password",
       "-Dplugin.version=" + version.value
     ),
   ) ++ Seq(Compile, Test).flatMap(c =>

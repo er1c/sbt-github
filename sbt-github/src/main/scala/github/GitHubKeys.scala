@@ -83,3 +83,9 @@ trait GitHubKeys {
 }
 
 object GitHubKeys extends GitHubKeys {}
+
+trait InternalGitHubKeys {
+  val githubRepo = taskKey[GitHubRepo]("GitHub repository.")
+}
+
+object InternalGitHubKeys extends InternalGitHubKeys {}

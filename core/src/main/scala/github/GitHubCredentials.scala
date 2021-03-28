@@ -3,23 +3,23 @@ package github
 import sbt._
 import java.io.File
 
-case class GitHubCredentials(user: String, password: String) {
-  override def toString = s"GitHubCredentials($user, ${"x"*password.size})"
+case class GitHubCredentials(user: String, token: String) {
+  override def toString = s"GitHubCredentials($user, ${"x"*token.size})"
 }
 
 object GitHubCredentials {
 
-  val Keys = Seq("realm", "host", "user", "password")
-  def templateSrc(realm: String, host: String)(user: String, password: String): String =
+  val Keys = Seq("realm", "host", "user", "token")
+  def templateSrc(realm: String, host: String)(user: String, token: String): String =
     s"""realm = $realm
        |host = $host
        |user = $user
-       |password = $password""".stripMargin
+       |token = $token""".stripMargin
 
   /** github api */
   object api {
     def toDirect(bc: GitHubCredentials) =
-      sbt.Credentials(Realm, Host, bc.user, bc.password)
+      sbt.Credentials(Realm, Host, bc.user, bc.token)
 
     val Host = "api.github.com"
     val Realm = "GitHub API Realm"
@@ -47,7 +47,7 @@ object GitHubCredentials {
         val missing = Keys.filter(!mapped.contains(_))
 
         if (!missing.isEmpty) None
-        else Some(GitHubCredentials(mapped("user"), mapped("password")))
+        else Some(GitHubCredentials(mapped("user"), mapped("token")))
       case _ => None
     }
   }

@@ -7,10 +7,10 @@ import java.io.File
  */
 case class GitHubCredentialContext(
   credsFile: File,
-  userNameProp: String,
-  passwordProp: String,
-  userNameEnv: String,
-  passwordEnv: String
+  userProp: String,
+  tokenProp: String,
+  userEnv: String,
+  tokenEnv: String
 )
 
 object GitHubCredentialContext {
