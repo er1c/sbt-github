@@ -37,8 +37,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     scriptedLaunchOpts ++= Seq(
       "-Xmx1024M",
       "-XX:MaxPermSize=256M",
-      "-Dgithub.user=username",
-      "-Dgithub.token=password",
+      s"-Dgithub.user=${sys.env.get("GITHUB_USER").getOrElse("username")}",
+      s"-Dgithub.token=${sys.env.get("GITHUB_TOKEN").getOrElse("password")}",
       "-Dplugin.version=" + version.value
     ),
   ) ++ Seq(Compile, Test).flatMap(c =>

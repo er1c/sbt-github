@@ -16,9 +16,12 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 
   /** Lists versions of github packages corresponding to the current project */
   def packageVersions(packageName: String, log: Logger): Seq[String] = {
+    log.debug(s"${this.toString}.packageVersions($packageName)")
     val query = Query.repository(name = repoName, owner = owner) {
       Repository.packages(
-        names = Some(List(Some(packageName))),
+        last = Some(50),
+        // com.example.github-packages-tests_2.13
+        //names = Some(List(Some(packageName))),
         packageType = Some(PackageType.MAVEN)
       )(packageVersionsBuilder)
     }
