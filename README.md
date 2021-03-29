@@ -7,6 +7,19 @@ An sbt plugin for publishing [github](https://github.com) packages.
 
 Usage and design inspired by [sbt-bintray](https://index.scala-lang.org/sbt/sbt-bintray) .
 
+## Developing
+
+CI Tests require a `GITHUB_TOKEN` environment variable to exist.  The only permissions it should need (as of right now) is `package:read`.
+
+For IntelliJ, you can export the env var before starting the application has an easy hack.
+
+There is a test repo: [github-package-tests](https://github.com/er1c/github-packages-tests) that will have a (semi-static) set of packages that can be used for CI tests.
+
+### Example GitHub API Call
+
+* [packageVersions](https://github.com/er1c/sbt-github/blob/develop/core/src/main/scala/github/GitHubRepo.scala#L17)
+* [package-versions CI](https://github.com/er1c/sbt-github/blob/develop/sbt-github/src/sbt-test/sbt-github/package-versions/build.sbt#L5)
+
 ## References
 
 * [sbt-github-packages](https://github.com/djspiewak/sbt-github-packages/tree/master/src/main/scala/sbtghpackages)
