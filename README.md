@@ -7,6 +7,18 @@ An sbt plugin for publishing [github](https://github.com) packages.
 
 Usage and design inspired by [sbt-bintray](https://index.scala-lang.org/sbt/sbt-bintray) .
 
+## TODO
+
+- [x] Strip package down to API
+- [x] Setup CI
+- [x] Add first GraphQL API call & test
+- [ ] Finish `sbt-github` implementation (See commented out code in: https://github.com/er1c/sbt-github/blob/develop/sbt-github/src/main/scala/github/GitHubPlugin.scala)
+- [ ] Finish `sbt-github-remote-cache` implementation (See commented out code in: https://github.com/er1c/sbt-github/blob/develop/sbt-github-remote-cache/src/main/scala/github/GitHubRemoteCachePlugin.scala)
+- [ ] Testing
+- [ ] Release RC1
+
+
+
 ## Developing
 
 CI Tests require a `GITHUB_TOKEN` environment variable to exist.  The only permissions it should need (as of right now) is `package:read`.
