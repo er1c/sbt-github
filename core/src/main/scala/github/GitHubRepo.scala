@@ -2,32 +2,92 @@ package github
 
 import sbt._
 import caliban.client.SelectionBuilder
+import sbt.Keys._
+import scala.concurrent.duration.Duration
 
 object GitHubRepo {
   import caliban.client.github.Client._
   import GitHubHelpers._
 
-  private val packageVersionsBuilder: SelectionBuilder[PackageConnection, List[String]] =
-    PackageConnection.nodes(Package.name).map(flattenToList)
+
+  private val packageVersionsBuilder: SelectionBuilder[PackageVersionConnection, List[String]] =
+    PackageVersionConnection.nodes(PackageVersion.version).map(flattenToList)
+
+  private val packageBuilder: SelectionBuilder[PackageConnection, List[GitHubPackage]] =
+    PackageConnection.nodes(
+      (
+        Package.id ~
+          Package.latestVersion(PackageVersion.version) ~
+          Package.name ~
+          //Package.repository()
+          Package.packageType ~
+          Package.statistics(PackageStatistics.downloadsTotalCount).map(_.getOrElse(0)) ~
+          Package.versions(last = Some(100))(packageVersionsBuilder)
+      ).mapN(GitHubPackage)
+    ).map(flattenToList)
+
+  case class GitHubPackage(
+    id: String,
+    latestVersion: Option[String],
+    name: String,
+    //repo: String,
+    packageType: PackageType,
+    //repository
+    downloadsTotalCount: Int,
+    versions: List[String],
+
+//    owner: String,
+//    desc: Option[String],
+//    labels: List[String],
+//    attrNames: List[String],
+//    followers: Int,
+//    created: String,
+//    updated: String,
+//    web: Option[String],
+//    issueTracker: Option[String],
+//    githubRepo: Option[String],
+//    vcs: Option[String],
+//    githubReleaseNotes: String,
+//    publicDownloadNumbers: Boolean,
+//    links: List[String],
+//    versions: List[String],
+//    latestVersion: Option[String],
+//    rating: Int,
+//    systemIds: List[String]
+  )
 }
 case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: String) extends GitHubHelpers {
   import caliban.client.github.Client._
   import GitHubRepo._
 
-  /** Lists versions of github packages corresponding to the current project */
-  def packageVersions(packageName: String, log: Logger): Seq[String] = {
-    log.debug(s"${this.toString}.packageVersions($packageName)")
+  /**
+   * Lists versions of github packages corresponding to the current project
+   *  Example packages: https://github.com/er1c?tab=packages&repo_name=github-packages-tests
+   * @param packageNames Sequence of github package names (e.g. `com.example.cross-platform-example_sjs1_2.11`)
+   * @param log Sbt Logger
+   * @return
+   */
+  def packageVersions(
+    packageName: String,
+    log: Logger,
+  ): Seq[String] = {
+    log.info(s"GitHubRepo($credentials, $owner, $repoName).packageVersions($packageName)")
+
     val query = Query.repository(name = repoName, owner = owner) {
       Repository.packages(
         last = Some(50),
-        // com.example.github-packages-tests_2.13
-        //names = Some(List(Some(packageName))),
-        packageType = Some(PackageType.MAVEN)
-      )(packageVersionsBuilder)
+        names = Some(List(Some(packageName))),
+        packageType = Some(PackageType.MAVEN),
+      )(packageBuilder)
     }
 
-    get(query).getOrElse(Nil)
+    val packages: List[GitHubPackage] = get(query).getOrElse(Nil)
+    assert(packages.isEmpty || packages.size == 1, s"Unexpected multiple package results: $packages")
+    packages.flatMap { _.versions }
   }
+
+  // https://github.com/marketplace/actions/delete-package-versions
+
 
 //  def buildPublishResolver(
 //    packageName: String,
@@ -37,7 +97,9 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 //    isRelease: Boolean,
 //    log: Logger
 //  ): Resolver = {
-//    val query = Query.repository(owner, repoName)
+//    val query = Query.repository(owner, repoName) {
+//
+//    }
 //    val pkg = repo.get(packageName)
 //    // warn the user that github expects maven published artifacts to be published to the `maven` repo
 //    // but they have explicitly opted into a publish style and/or repo that
@@ -46,9 +108,8 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 //      "you have opted to publish to a repository named 'maven' but publishMavenStyle is assigned to false. This may result in unexpected behavior")
 //    GitHub.publishTo(repo, pkg, vers, mvnStyle, isSbtPlugin, isRelease)
 //  }
-//
-//  def buildRemoteCacheResolver(packageName: String, log: Logger): Resolver =
-//  {
+
+//  def buildRemoteCacheResolver(packageName: String, log: Logger): Resolver = {
 //    val pkg = repo.get(packageName)
 //    GitHub.remoteCache(repo, pkg)
 //  }
@@ -199,8 +260,7 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 //    }).head
 //  }
 //
-//  def cleandOldVersions(packageName: String, min: Int, ttl: Duration, log: Logger): Unit =
-//  {
+  def cleandOldVersions(packageName: String, min: Int, ttl: Duration, log: Logger): Unit = {
 //    val vers0 = packageVersions(packageName, log)
 //    val vers = vers0.drop(min)
 //    if (vers.isEmpty || !ttl.isFinite) ()
@@ -212,7 +272,9 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 //        unpublish(packageName, ver, log)
 //      }
 //    }
-//  }
+
+    ???
+  }
 //}
 //
 //object GitHubRepo {

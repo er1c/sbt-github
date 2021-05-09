@@ -23,6 +23,13 @@ Usage and design inspired by [sbt-bintray](https://index.scala-lang.org/sbt/sbt-
 
 CI Tests require a `GITHUB_TOKEN` environment variable to exist.  The only permissions it should need (as of right now) is `package:read`.
 
+For local testing, add a `$HOME/.github/.credentials` with contents:
+
+    realm = GitHub API Realm
+    host = api.github.com
+    user = username
+    password = token
+
 For IntelliJ, you can export the env var before starting the application has an easy hack.
 
 There is a test repo: [github-package-tests](https://github.com/er1c/github-packages-tests) that will have a (semi-static) set of packages that can be used for CI tests.

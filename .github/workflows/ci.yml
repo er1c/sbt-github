@@ -13,9 +13,6 @@ on:
   push:
     branches: ['*']
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   build:
     name: Build and Test
@@ -57,6 +54,19 @@ jobs:
         shell: bash
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
+      - env:
+          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          mkdir ~/.github && echo "
+          realm = GitHub API Realm
+          host = api.github.com
+          user = $GITHUB_USER
+          password = $GITHUB_TOKEN
+          " >> ~/.github/.credentials
+
+      
       - shell: bash
         run: sbt ++${{ matrix.scala }} test scripted
 

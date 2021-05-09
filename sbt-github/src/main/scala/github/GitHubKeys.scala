@@ -37,6 +37,9 @@ trait GitHubKeys {
   val githubPackageVersions = taskKey[Seq[String]](
     "List github versions for the current package")
 
+  val githubPackageName = taskKey[String](
+    "List github package name for the current package")
+
   val githubChangeCredentials = taskKey[Unit](
     "Change your current github credentials")
 

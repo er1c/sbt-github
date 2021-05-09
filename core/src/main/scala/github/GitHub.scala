@@ -2,6 +2,7 @@ package github
 
 import sbt._
 import scala.collection.concurrent.TrieMap
+import scala.util.Try
 
 object GitHub {
   val defaultMavenRepository = "maven"
@@ -85,4 +86,24 @@ object GitHub {
   }
 
   // endregion
+
+  def remoteCache(owner: String, repoName: String): Resolver =
+    GitHubResolverSyntax.makeMavenRepository(owner, repoName)
+
+  def resolveVcsUrl: Try[Option[String]] =
+    Try {
+      val pushes =
+        sys.process.Process("git" :: "remote" :: "-v" :: Nil).!!.split("\n")
+          .flatMap {
+            _.split("""\s+""") match {
+              case Array(name, url, "(push)") => Some((name, url))
+              case _                          => None
+            }
+          }
+
+      pushes
+        .find { case (name, _) => "origin" == name }
+        .orElse(pushes.headOption)
+        .map { case (_, url) => url }
+    }
 }

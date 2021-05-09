@@ -9,12 +9,12 @@ case class GitHubCredentials(user: String, token: String) {
 
 object GitHubCredentials {
 
-  val Keys = Seq("realm", "host", "user", "token")
-  def templateSrc(realm: String, host: String)(user: String, token: String): String =
+  val Keys = Seq("realm", "host", "user", "password")
+  def templateSrc(realm: String, host: String)(user: String, password: String): String =
     s"""realm = $realm
        |host = $host
        |user = $user
-       |token = $token""".stripMargin
+       |password = $password""".stripMargin
 
   /** github api */
   object api {
@@ -47,7 +47,7 @@ object GitHubCredentials {
         val missing = Keys.filter(!mapped.contains(_))
 
         if (!missing.isEmpty) None
-        else Some(GitHubCredentials(mapped("user"), mapped("token")))
+        else Some(GitHubCredentials(mapped("user"), mapped("password")))
       case _ => None
     }
   }

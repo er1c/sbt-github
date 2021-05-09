@@ -38,10 +38,12 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
       val owner = githubRemoteCacheOwner.value
       val repoName = githubRemoteCacheRepository.value
       val context = GitHubCredentialContext.remoteCache(credsFile)
-//      GitHub.withRepo(context, owner, repoName, sLog.value) { repo =>
+
+      GitHub.withRepo(context, owner, repoName, sLog.value) { _ =>
+        Resolver.githubRepo(owner, githubRemoteCachePackage.value)
+//        Repository.githubRepo(owner, repoName)
 //        repo.buildRemoteCacheResolver(githubRemoteCachePackage.value, sLog.value)
-//      }
-      ???
+      }
     }
 
   def packageCleanOldVersionsTask: Def.Initialize[Task[Unit]] =
@@ -54,9 +56,8 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
       val s = Keys.streams.value
       val min = githubRemoteCacheMinimum.value
       val ttl = githubRemoteCacheTtl.value
-//      GitHub.withRepo(context, owner, repoName, s.log) { repo =>
-//        repo.cleandOldVersions(pkg, min, ttl, s.log)
-//      }
-      ???
+      GitHub.withRepo(context, owner, repoName, s.log) { repo =>
+        repo.cleandOldVersions(pkg, min, ttl, s.log)
+      }
     }
 }
