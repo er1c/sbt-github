@@ -1,7 +1,7 @@
 package github
 
 import caliban.client.Operations.IsOperation
-import caliban.client.{CalibanClientError, Operations, SelectionBuilder}
+import caliban.client.{CalibanClientError, SelectionBuilder}
 import scala.concurrent.Future
 import sttp.client3.{SttpBackend, UriContext}
 import sttp.client3.asynchttpclient.future.AsyncHttpClientFutureBackend
@@ -20,9 +20,6 @@ object GitHubHelpers {
 
   private[github] def flattenToList[A](as: Option[List[Option[A]]]): List[A] =
     as.getOrElse(Nil).collect { case Some(gf) => gf }
-
-  private[github] def flattenToList[A](as: List[List[A]]): List[A] =
-    as.flatten
 
 }
 

@@ -2,7 +2,6 @@ package github
 
 import sbt._
 import caliban.client.SelectionBuilder
-import caliban.client.github.Client.DeletePackageVersionPayload
 import sbt.Keys._
 import scala.concurrent.duration.Duration
 import GitHubHelpers._
@@ -10,12 +9,43 @@ import GitHubHelpers._
 object GitHubRepo {
   import caliban.client.github.Client._
 
-  private val packageVersionsBuilder: SelectionBuilder[PackageVersionConnection, List[String]] =
+  private val packageVersionsPlainBuilder: SelectionBuilder[PackageVersionConnection, List[String]] =
     PackageVersionConnection.nodes(PackageVersion.version).map(flattenToList)
 
-  private val packageVersionIdsBuilder: SelectionBuilder[PackageVersionConnection, List[(String, String)]] =
-    PackageVersionConnection.nodes(PackageVersion.id ~ PackageVersion.version).map(flattenToList)
+  private val releaseBuilder: SelectionBuilder[Release, GitHubRelease] =
+    (
+      Release.id ~
+        //Release.author ~
+        Release.createdAt ~
+        Release.description ~
+        Release.descriptionHTML ~
+        Release.isDraft ~
+        Release.isLatest ~
+        Release.isPrerelease ~
+        Release.name ~
+        Release.publishedAt ~
+        //Release.releaseAssets: List[ReleaseAsset] ~
+        Release.resourcePath ~
+        //Release.shortDescriptionHTML ~
+        //Release.tag ~
+        Release.tagName ~
+        Release.updatedAt ~
+        Release.url
+    ).mapN(GitHubRelease)
 
+  private val packageVersionBuilder: SelectionBuilder[PackageVersionConnection, List[GitHubPackageVersion]] =
+    PackageVersionConnection.nodes(
+      (
+        PackageVersion.id ~
+          PackageVersion.platform ~
+          PackageVersion.preRelease ~
+          PackageVersion.readme ~
+          PackageVersion.release(releaseBuilder) ~
+          PackageVersion.statistics(PackageVersionStatistics.downloadsTotalCount).map(_.getOrElse(0)) ~
+          PackageVersion.summary ~
+          PackageVersion.version
+      ).mapN(GitHubPackageVersion)
+    ).map(flattenToList)
 
   private val packageBuilder: SelectionBuilder[PackageConnection, List[GitHubPackage]] =
     PackageConnection.nodes(
@@ -26,11 +56,11 @@ object GitHubRepo {
           //Package.repository()
           Package.packageType ~
           Package.statistics(PackageStatistics.downloadsTotalCount).map(_.getOrElse(0)) ~
-          Package.versions(last = Some(100))(packageVersionsBuilder)
+          Package.versions(last = Some(100))(packageVersionsPlainBuilder)
       ).mapN(GitHubPackage)
     ).map(flattenToList)
 
-  case class GitHubPackage(
+  final case class GitHubPackage(
     id: String,
     latestVersion: Option[String],
     name: String,
@@ -59,6 +89,44 @@ object GitHubRepo {
 //    rating: Int,
 //    systemIds: List[String]
   )
+
+  final case class GitHubPackageVersion(
+    id: String,
+    //`package`: Option[Package]
+    platform: Option[String],
+    preRelease: Boolean,
+    readme: Option[String],
+    release: Option[GitHubRelease],
+    //statistics: Option[GitHubPackageVersionStatistics],
+    downloadsTotalCount: Int,
+    summary: Option[String],
+    version: String,
+  )
+
+  final case class GitHubRelease(
+    id: String,
+//    //author: User
+    createdAt: DateTime,
+    description: Option[String],
+    descriptionHTML: Option[HTML],
+    isDraft: Boolean,
+    isLatest: Boolean,
+    isPrerelease: Boolean,
+    name: Option[String],
+    publishedAt: Option[DateTime],
+//    //releaseAssets: List[ReleaseAsset]
+    resourcePath: URI,
+//    shortDescriptionHTML: Option[HTML],
+//    //tag: Option[Ref],
+    tagName: String,
+    updatedAt: DateTime,
+    url: URI,
+  )
+
+//  final case class GitHubPackageVersionStatistics(
+//    downloadsTotalCount: Int,
+//  )
+
 }
 case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], repoName: String) extends GitHubHelpers {
   import caliban.client.github.Client._
@@ -124,17 +192,17 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], rep
         packageType = Some(PackageType.MAVEN),
       )(
         PackageConnection.nodes(
-          Package.versions(last = Some(100))(packageVersionIdsBuilder)
+          Package.versions(last = Some(100))(packageVersionBuilder)
         ).map(flattenToList)
-      ).map(flattenToList)
+      ).map(_.flatten)
     }
 
-    val packageVersionIdAndVersion: List[(String, String)] = {
+    val packageVersionIdAndVersion: List[GitHubPackageVersion] = {
       get(packageVersions).getOrElse(Nil)
     }
 
     packageVersionIdAndVersion.collect {
-      case (versionId, v) if v == version => versionId
+      case v if v.version == version => v.id
     }.foreach { versionId =>
       val query = Mutation
         .deletePackageVersion(DeletePackageVersionInput(packageVersionId = versionId)) {
