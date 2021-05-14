@@ -1,9 +1,8 @@
 package github
 
 import java.net.URL
-import org.apache.ivy.plugins.repository.Repository
 import sbt.{MavenRepository, Resolver}
-import org.apache.ivy.plugins.resolver.{IBiblioResolver, URLResolver}
+import sbt.librarymanagement.URLRepository
 
 object GitHubResolverSyntax {
   private[github] def makeGitHubRepoName(owner: String, repo: String): String =
@@ -15,10 +14,14 @@ object GitHubResolverSyntax {
   private[github] def makeMavenRepository(owner: String, repo: String): MavenRepository =
     MavenRepository(makeGitHubRepoName(owner, repo), makeGitHubUrl(owner, repo))
 
+  // TODO: GitHub Packages doesn't support Ivy yet
+//  private[github] def makeIvyRepository(owner: String, repo: String): URLRepository =
+//    Resolver.url(makeGitHubUrl(owner, repo), new URL(makeGitHubUrl(owner, repo)))(Resolver.ivyStylePatterns)
+
   implicit class RichGitHubResolver(val resolver: sbt.Resolver.type) extends AnyVal {
-    def githubRepo(owner: String, repo: String) = makeMavenRepository(owner, repo)
-    def githubIvyRepo(owner: String, repo: String) =
-      Resolver.url(s"github-$owner-$repo", new URL(s"https://maven.pkg.github.com/$owner/$repo"))(Resolver.ivyStylePatterns)
+    def githubRepo(owner: String, repo: String): MavenRepository = makeMavenRepository(owner, repo)
+    // TODO: GitHub Packages doesn't support Ivy yet
+    //def githubIvyRepo(owner: String, repo: String): URLRepository = makeIvyRepository(owner, repo)
   }
 }
 
@@ -28,19 +31,3 @@ trait GitHubResolverSyntax {
   implicit def toGitHubResolverSyntax(resolver: sbt.Resolver.type): RichGitHubResolver =
     new RichGitHubResolver(resolver)
 }
-
-//case class GitHubMavenResolver(
-//  owner: String,
-//  repo: String,
-//  release: Boolean,
-//  ignoreExists: Boolean
-//) extends IBiblioResolver {
-//  import GitHubResolverSyntax._
-//
-//  setName(makeGitHubRepoName(owner, repo))
-//  setM2compatible(true)
-//  setRoot(makeGitHubUrl(owner, repo))
-//
-//  override def setRepository(repository: Repository): Unit =
-//    super.setRepository(GitHubResolverSyntax.makeMavenRepository(owner, name))
-//}

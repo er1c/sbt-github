@@ -5,20 +5,30 @@ import scala.collection.concurrent.TrieMap
 import scala.util.Try
 
 object GitHub {
+  import GitHubResolverSyntax._
   val defaultMavenRepository = "maven"
   // http://www.scala-sbt.org/0.13/docs/Bintray-For-Plugins.html
   val defaultSbtPluginRepository = "sbt-plugins"
 
-  def withRepo[A](context: GitHubCredentialContext, owner: String, repoName: String, log: Logger)
+
+  def publishTo(
+    owner: String,
+    repoName: String,
+    mvnStyle: Boolean = true,
+  ): Resolver =
+    if (mvnStyle) RawRepository(Resolver.githubRepo(owner, repoName))
+    else sys.error("GitHub Packages does not support ivy-style")
+
+  def withRepo[A](context: GitHubCredentialContext, owner: Option[String], repoName: String, log: Logger)
     (f: GitHubRepo => A): Option[A] =
     ensuredCredentials(context, log) map { cred =>
       val repo = cachedRepo(cred, owner, repoName)
       f(repo)
     }
 
-  private val repoCache: TrieMap[(GitHubCredentials, String, String), GitHubRepo] = TrieMap()
+  private val repoCache: TrieMap[(GitHubCredentials, Option[String], String), GitHubRepo] = TrieMap()
 
-  def cachedRepo(credential: GitHubCredentials, owner: String, repoName: String): GitHubRepo =
+  def cachedRepo(credential: GitHubCredentials, owner: Option[String], repoName: String): GitHubRepo =
     repoCache.synchronized {
       // lock to avoid creating and leaking HTTP client threadpools
       // see: https://github.com/sbt/sbt-bintray/issues/144
@@ -106,4 +116,12 @@ object GitHub {
         .orElse(pushes.headOption)
         .map { case (_, url) => url }
     }
+
+  private[github] def buildResolvers(creds: Option[GitHubCredentials], owner: Option[String], repoName: String, mavenStyle: Boolean): Seq[Resolver] =
+    creds.map {
+      case GitHubCredentials(user, _) => Seq(
+        if (mavenStyle) Resolver.githubRepo(owner.getOrElse(user), repoName)
+        else ??? // Resolver.githubIvyRepo(owner.getOrElse(user), repoName)
+      )
+    } getOrElse Nil
 }

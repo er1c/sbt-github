@@ -48,7 +48,7 @@ object GitHubPlugin extends AutoPlugin {
 
   def githubQuerySettings: Seq[Setting[_]] = Seq(
     githubPackageVersions := packageVersionsTask.value,
-    githubPackageName := packageNameTask.value,
+    githubPackage := packageNameTask.value,
   )
 
   def globalPublishSettings: Seq[Setting[_]] = Seq(
@@ -80,35 +80,18 @@ object GitHubPlugin extends AutoPlugin {
     // note: publishTo may not have dependencies. therefore, we can not rely well on inline overrides
     // for inline credentials resolution we recommend defining githubCredentials _before_ mixing in the defaults
     // perhaps we should try overriding something in the publishConfig setting -- https://github.com/sbt/sbt-pgp/blob/master/pgp-plugin/src/main/scala/com/typesafe/sbt/pgp/PgpSettings.scala#L124-L131
-    //    publishTo in github := publishToGitHub.value,
-    //    resolvers in github := {
-    //      val context = GitHubCredentialContext(githubCredentialsFile.value)
-    //      GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
-    //        githubOwner.value,
-    //        githubRepository.value,
-    //        publishMavenStyle.value
-    //      )
-    //    },
+    publishTo in github := publishToGitHub.value,
+    resolvers in github := {
+      val context = GitHubCredentialContext(githubCredentialsFile.value)
+      GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
+        githubOwner.value,
+        githubRepository.value,
+        publishMavenStyle.value
+      )
+    },
     credentials in github := {
       Seq(githubCredentialsFile.value).filter(_.exists).map(Credentials.apply)
     },
-    //    githubPackageAttributes := {
-    //      if (sbtPlugin.value) Map(AttrNames.sbtPlugin -> Seq(Attr.Boolean(sbtPlugin.value)))
-    //      else Map.empty
-    //    },
-    //    githubVersionAttributes := {
-    //      val scalaVersions = crossScalaVersions.value
-    //      val sv = Map(AttrNames.scalas -> scalaVersions.map(Attr.Version))
-    //      if (sbtPlugin.value) sv ++ Map(AttrNames.sbtVersion-> Seq(Attr.Version(sbtVersion.value)))
-    //      else sv
-    //    },
-    githubOmitLicense := {
-      if (sbtPlugin.value) sbtPlugin.value
-      else false
-    },
-    //    githubEnsureLicenses := {
-    //      GitHub.ensureLicenses(licenses.value, githubOmitLicense.value)
-    //    },
     githubEnsureCredentials := {
       val context = GitHubCredentialContext(githubCredentialsFile.value)
       GitHub.ensuredCredentials(context, streams.value.log).getOrElse {
@@ -118,8 +101,7 @@ object GitHubPlugin extends AutoPlugin {
           s"pass github.token properties to sbt.")
       }
     },
-    //    githubEnsureGitHubPackageExists := ensurePackageTask.value,
-    //    githubUnpublish := dynamicallyGitHubUnpublish.value,
+    githubUnpublish := dynamicallyGitHubUnpublish.value,
     //    githubRemoteSign := {
     //      val repo = githubRepo.value
     //      repo.remoteSign(githubPackage.value, version.value, streams.value.log)
@@ -149,7 +131,7 @@ object GitHubPlugin extends AutoPlugin {
       if (isEnabledViaProp) p
       else old
     },
-    //publish := dynamicallyPublish.value
+    publish := dynamicallyPublish.value
   )
 
   ////  private def syncMavenCentral(close: Boolean): Initialize[Task[Unit]] = task {
@@ -162,52 +144,52 @@ object GitHubPlugin extends AutoPlugin {
       GitHub.resolveVcsUrl.recover { case _ => None }.get
     }.tag(Git)
 
-  //  // uses taskDyn because it can return one of two potential tasks
-  //  // as its result, each with their own dependencies
-  //  // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
-  //  private def dynamicallyPublish: Initialize[Task[Unit]] =
-  //    taskDyn {
-  //      val sk = ((skip in publish) ?? false).value
-  //      val s = streams.value
-  //      val ref = thisProjectRef.value
-  //
-  //      if (!isEnabledViaProp) publishTask(publishConfiguration, deliver)
-  //      else if (sk) Def.task {
-  //        s.log.debug(s"skipping publish for ${ref.project}")
-  //      }
-  //      else dynamicallyPublish0
-  //    }
-  //
-  //  private def dynamicallyPublish0: Initialize[Task[Unit]] =
-  //    taskDyn {
-  //      (if (githubReleaseOnPublish.value) githubRelease else warnToRelease).dependsOn(publishTask(publishConfiguration, deliver))
-  //    } dependsOn(githubEnsureGitHubPackageExists, githubEnsureLicenses)
-  //
-  //  // uses taskDyn because it can return one of two potential tasks
-  //  // as its result, each with their own dependencies
-  //  // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
-  //  private def dynamicallyGitHubUnpublish: Initialize[Task[Unit]] =
-  //    taskDyn {
-  //      val sk = ((skip in publish) ?? false).value
-  //      val s = streams.value
-  //      val ref = thisProjectRef.value
-  //      if (sk) Def.task {
-  //        s.log.debug(s"Skipping githubUnpublish for ${ref.project}")
-  //      } else dynamicallyGitHubUnpublish0
-  //    }
-  //
-  //  private def dynamicallyGitHubUnpublish0: Initialize[Task[Unit]] =
-  //    Def.task {
-  //      val repo = githubRepo.value
-  //      repo.unpublish(githubPackage.value, version.value, streams.value.log)
-  //    }.dependsOn(githubEnsureGitHubPackageExists, githubEnsureLicenses)
-  //
-  //  private def warnToRelease: Initialize[Task[Unit]] =
-  //    task {
-  //      val log = streams.value.log
-  //      log.warn("You must run githubRelease once all artifacts are staged.")
-  //    }
-  //
+  // uses taskDyn because it can return one of two potential tasks
+  // as its result, each with their own dependencies
+  // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
+  private def dynamicallyPublish: Initialize[Task[Unit]] =
+    taskDyn {
+      val sk = ((skip in publish) ?? false).value
+      val s = streams.value
+      val ref = thisProjectRef.value
+
+      if (!isEnabledViaProp) publishTask(publishConfiguration, deliver)
+      else if (sk) Def.task {
+        s.log.debug(s"skipping publish for ${ref.project}")
+      } else dynamicallyPublish0
+    }
+
+  private def dynamicallyPublish0: Initialize[Task[Unit]] =
+    taskDyn {
+      (if (githubReleaseOnPublish.value) githubRelease else warnToRelease).dependsOn(publishTask(publishConfiguration, deliver))
+    }
+
+
+  // uses taskDyn because it can return one of two potential tasks
+  // as its result, each with their own dependencies
+  // see also: http://www.scala-sbt.org/0.13/docs/Tasks.html#Dynamic+Computations+with
+  private def dynamicallyGitHubUnpublish: Initialize[Task[Unit]] =
+    taskDyn {
+      val sk = ((skip in publish) ?? false).value
+      val s = streams.value
+      val ref = thisProjectRef.value
+      if (sk) Def.task {
+        s.log.debug(s"Skipping githubUnpublish for ${ref.project}")
+      } else dynamicallyGitHubUnpublish0
+    }
+
+  private def dynamicallyGitHubUnpublish0: Initialize[Task[Unit]] =
+    Def.task {
+      val repo = githubRepo.value
+      repo.unpublish(githubPackage.value, version.value, streams.value.log)
+    }
+
+  private def warnToRelease: Initialize[Task[Unit]] =
+    task {
+      val log = streams.value.log
+      log.warn("You must run githubRelease once all artifacts are staged.")
+    }
+
   //  private def publishVersionAttributesTask: Initialize[Task[Unit]] =
   //    task {
   //      val repo = githubRepo.value
@@ -216,41 +198,20 @@ object GitHubPlugin extends AutoPlugin {
   //        version.value,
   //        githubVersionAttributes.value)
   //    }
-  //
-  //  private def ensurePackageTask: Initialize[Task[Unit]] =
-  //    task {
-  //      val vcs = githubVcsUrl.value.getOrElse {
-  //        sys.error("""githubVcsUrl not defined. assign this with githubVcsUrl := Some("git@github.com:you/your-repo.git")""")
-  //      }
-  //      val repo = githubRepo.value
-  //      repo.ensurePackage(githubPackage.value,
-  //        githubPackageAttributes.value,
-  //        (description in github).value,
-  //        vcs,
-  //        licenses.value,
-  //        githubPackageLabels.value,
-  //        streams.value.log)
-  //    }
+
 
   /** set a user-specific github endpoint for sbt's `publishTo` setting. */
-  //  private def publishToGitHub: Initialize[Option[Resolver]] =
-  //    setting {
-  //      val credsFile = githubCredentialsFile.value
-  //      val owner = githubOwner.value
-  //      val repoName = githubRepository.value
-  //      val context = GitHubCredentialContext(credsFile)
-  //      // ensure that we have credentials to build a resolver that can publish to github
-  //      GitHub.withRepo(context, owner, repoName, sLog.value) { repo =>
-  //        repo.buildPublishResolver(
-  //          githubPackage.value,
-  //          version.value,
-  //          publishMavenStyle.value,
-  //          sbtPlugin.value,
-  //          githubReleaseOnPublish.value,
-  //          sLog.value
-  //        )
-  //      }
-  //    }
+  private def publishToGitHub: Initialize[Option[Resolver]] =
+    setting {
+      val credsFile = githubCredentialsFile.value
+      val owner = githubOwner.value
+      val repoName = githubRepository.value
+      val context = GitHubCredentialContext(credsFile)
+      // ensure that we have credentials to build a resolver that can publish to github
+      GitHub.withRepo(context, owner, repoName, sLog.value) { repo =>
+        repo.buildPublishResolver(publishMavenStyle.value)
+      }
+    }
 
 
   /** Lists github package name corresponding to the current project */
@@ -293,7 +254,7 @@ object GitHubPlugin extends AutoPlugin {
       val context = GitHubCredentialContext(credsFile)
 
       GitHub.withRepo(context, owner, repoName, streams.value.log) { repo =>
-        repo.packageVersions(githubPackageName.value, streams.value.log)
+        repo.packageVersions(githubPackage.value, streams.value.log)
       }.getOrElse(Nil)
     }
 }

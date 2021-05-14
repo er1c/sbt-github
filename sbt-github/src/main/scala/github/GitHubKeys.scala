@@ -13,10 +13,10 @@ trait GitHubKeys {
   val githubReleaseOnPublish = settingKey[Boolean](
     "When set to true, publish also runs githubRelease")
 
-  val githubOwner = settingKey[String](
+  val githubOwner = settingKey[Option[String]](
     "GitHub user or organization name")
 
-  val githubPackage = settingKey[String](
+  val githubPackage = taskKey[String](
     "GitHub package name")
 
   val githubRepository = settingKey[String](
@@ -37,20 +37,11 @@ trait GitHubKeys {
   val githubPackageVersions = taskKey[Seq[String]](
     "List github versions for the current package")
 
-  val githubPackageName = taskKey[String](
-    "List github package name for the current package")
-
   val githubChangeCredentials = taskKey[Unit](
     "Change your current github credentials")
 
   val githubWhoami = taskKey[String](
     "Print the name of the currently authenticated github user")
-
-  val githubOmitLicense = settingKey[Boolean](
-     "Omit license, useful if publishing to a private repo. Defaults to false")
-
-  val githubEnsureLicenses = taskKey[Unit](
-    "Ensure that the licenses for github are valid.")
 
   val githubEnsureCredentials = taskKey[GitHubCredentials](
     "Ensure that the credentials for github are valid.")

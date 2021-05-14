@@ -1,5 +1,6 @@
 package github
 
+import caliban.client.Operations.IsOperation
 import caliban.client.{CalibanClientError, Operations, SelectionBuilder}
 import scala.concurrent.Future
 import sttp.client3.{SttpBackend, UriContext}
@@ -19,6 +20,10 @@ object GitHubHelpers {
 
   private[github] def flattenToList[A](as: Option[List[Option[A]]]): List[A] =
     as.getOrElse(Nil).collect { case Some(gf) => gf }
+
+  private[github] def flattenToList[A](as: List[List[A]]): List[A] =
+    as.flatten
+
 }
 
 trait GitHubHelpers {
@@ -26,14 +31,15 @@ trait GitHubHelpers {
   import scala.concurrent.ExecutionContext.Implicits.global
   def credentials: GitHubCredentials
 
-  protected def runRequest[A](query: SelectionBuilder[Operations.RootQuery, A]): Future[A] =
+  protected def runRequest[Origin, A](query: SelectionBuilder[Origin, A])(implicit ev: IsOperation[Origin]): Future[A] =
     backend
       .send(query.toRequest(uri).header("Authorization", s"Bearer ${credentials.token}"))
       .map(_.body)
       .flatMap(handleError)
 
-  protected def get[A](query: SelectionBuilder[Operations.RootQuery, A]): A =
+  protected def get[Origin, A](query: SelectionBuilder[Origin, A])(implicit ev: IsOperation[Origin]): A =
     await.result(runRequest(query))
+
 
   private def handleError[A](value: Either[CalibanClientError, A]): Future[A] = value match {
     case Left(error) => Future.failed(error)

@@ -2,16 +2,20 @@ package github
 
 import sbt._
 import caliban.client.SelectionBuilder
+import caliban.client.github.Client.DeletePackageVersionPayload
 import sbt.Keys._
 import scala.concurrent.duration.Duration
+import GitHubHelpers._
 
 object GitHubRepo {
   import caliban.client.github.Client._
-  import GitHubHelpers._
-
 
   private val packageVersionsBuilder: SelectionBuilder[PackageVersionConnection, List[String]] =
     PackageVersionConnection.nodes(PackageVersion.version).map(flattenToList)
+
+  private val packageVersionIdsBuilder: SelectionBuilder[PackageVersionConnection, List[(String, String)]] =
+    PackageVersionConnection.nodes(PackageVersion.id ~ PackageVersion.version).map(flattenToList)
+
 
   private val packageBuilder: SelectionBuilder[PackageConnection, List[GitHubPackage]] =
     PackageConnection.nodes(
@@ -56,7 +60,7 @@ object GitHubRepo {
 //    systemIds: List[String]
   )
 }
-case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: String) extends GitHubHelpers {
+case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], repoName: String) extends GitHubHelpers {
   import caliban.client.github.Client._
   import GitHubRepo._
 
@@ -68,15 +72,15 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
    * @return
    */
   def packageVersions(
-    packageName: String,
+    githubPackageName: String,
     log: Logger,
   ): Seq[String] = {
-    log.info(s"GitHubRepo($credentials, $owner, $repoName).packageVersions($packageName)")
+    log.info(s"GitHubRepo($credentials, $owner, $repoName).packageVersions($githubPackageName)")
 
-    val query = Query.repository(name = repoName, owner = owner) {
+    val query = Query.repository(name = repoName, owner = owner.getOrElse(credentials.user)) {
       Repository.packages(
         last = Some(50),
-        names = Some(List(Some(packageName))),
+        names = Some(List(Some(githubPackageName))),
         packageType = Some(PackageType.MAVEN),
       )(packageBuilder)
     }
@@ -89,25 +93,8 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
   // https://github.com/marketplace/actions/delete-package-versions
 
 
-//  def buildPublishResolver(
-//    packageName: String,
-//    vers: String,
-//    mvnStyle: Boolean,
-//    isSbtPlugin: Boolean,
-//    isRelease: Boolean,
-//    log: Logger
-//  ): Resolver = {
-//    val query = Query.repository(owner, repoName) {
-//
-//    }
-//    val pkg = repo.get(packageName)
-//    // warn the user that github expects maven published artifacts to be published to the `maven` repo
-//    // but they have explicitly opted into a publish style and/or repo that
-//    // deviates from that expectation
-//    if (GitHub.defaultMavenRepository == repo.repo && !mvnStyle) log.info(
-//      "you have opted to publish to a repository named 'maven' but publishMavenStyle is assigned to false. This may result in unexpected behavior")
-//    GitHub.publishTo(repo, pkg, vers, mvnStyle, isSbtPlugin, isRelease)
-//  }
+  def buildPublishResolver(mvnStyle: Boolean): Resolver =
+    GitHub.publishTo(owner.getOrElse(credentials.user), repoName, mvnStyle)
 
 //  def buildRemoteCacheResolver(packageName: String, log: Logger): Resolver = {
 //    val pkg = repo.get(packageName)
@@ -125,16 +112,43 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: String, repoName: S
 //      case (200, _) => log.info(s"$owner/$packageName@$vers was released")
 //      case (_, fail) => sys.error(s"failed to release $owner/$packageName@$vers: $fail")
 //    }
-//
-//  /** unpublish (delete) a version of a package */
-//  def unpublish(packageName: String, vers: String, log: Logger): Unit =
-//    await.result(repo.get(packageName).version(vers).delete(asStatusAndBody)) match {
-//      case (200, _) => log.info(s"$owner/$packageName@$vers was discarded")
-//      case (404, _) => log.warn(s"$owner/$packageName@$vers was not found")
-//      case (_, fail) => sys.error(s"failed to discard $owner/$packageName@$vers: $fail")
-//    }
-//
-//  /** Request pgp credentials from the environment in the following order:
+
+  /** unpublish (delete) a version of a package */
+  def unpublish(githubPackageName: String, version: String, log: Logger): Unit = {
+    log.info(s"GitHubRepo($credentials, $owner, $repoName).packageVersions($githubPackageName)")
+
+    val packageVersions = Query.repository(name = repoName, owner = owner.getOrElse(credentials.user)) {
+      Repository.packages(
+        first = Some(1),
+        names = Some(List(Some(githubPackageName))),
+        packageType = Some(PackageType.MAVEN),
+      )(
+        PackageConnection.nodes(
+          Package.versions(last = Some(100))(packageVersionIdsBuilder)
+        ).map(flattenToList)
+      ).map(flattenToList)
+    }
+
+    val packageVersionIdAndVersion: List[(String, String)] = {
+      get(packageVersions).getOrElse(Nil)
+    }
+
+    packageVersionIdAndVersion.collect {
+      case (versionId, v) if v == version => versionId
+    }.foreach { versionId =>
+      val query = Mutation
+        .deletePackageVersion(DeletePackageVersionInput(packageVersionId = versionId)) {
+          DeletePackageVersionPayload.success
+        }
+
+      get(query).map { success =>
+        if (!success.getOrElse(false)) sys.error(s"Error deleting $version ($versionId) for $githubPackageName")
+        else log.info(s"Successfully deleted $version for $githubPackageName")
+      }
+    }
+  }
+
+  //  /** Request pgp credentials from the environment in the following order:
 //   *
 //   *  1. From system properties.
 //   *  2. From system environment variables.

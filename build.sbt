@@ -67,7 +67,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     case Some((2, v)) if v >= 11 => unusedWarnings
   }.toList.flatten,
   libraryDependencies ++= Seq(
-    "io.github.er1c" %% "caliban-github-api-client" % "0.9.5-1",
+    "io.github.er1c" %% "caliban-github-api-client" % "0.9.5-2",
     "com.softwaremill.sttp.client3" %% "async-http-client-backend-future" % SttpVersion, // async-http-client-backend-zio
     //"org.asynchttpclient" % "async-http-client" % "2.12.2",
     "com.github.ghostdogpr" %% "caliban-http4s" % CalibanVersion,

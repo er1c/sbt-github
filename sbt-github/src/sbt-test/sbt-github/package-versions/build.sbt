@@ -30,7 +30,7 @@ ThisBuild / organizationName := "example"
 
 ThisBuild / githubOwner := "er1c"
 
-val checkGithubPackageName = taskKey[Unit]("check githubPackageName")
+val checkGithubPackageName = taskKey[Unit]("check githubPackage")
 val checkGithubPackageVersions = taskKey[Unit]("check githubPackageVersions")
 
 
@@ -43,7 +43,7 @@ lazy val crossScalaExample = project.in(file("cross-scala-example"))
     crossScalaVersions := Seq(Scala210, Scala211, Scala212, Scala213),//, Scala300),
     githubRepository := "github-packages-tests",
     checkGithubPackageName := (Def.taskDyn {
-      val packageName = githubPackageName.value
+      val packageName = githubPackage.value
       val expectedPackageName = scalaBinaryVersion.value match {
         case "2.10" => "com.example.cross-scala-example_2.10"
         case "2.11" => "com.example.cross-scala-example_2.11"
@@ -53,7 +53,7 @@ lazy val crossScalaExample = project.in(file("cross-scala-example"))
       Def.task {
         assert(
           packageName == expectedPackageName,
-          s"crossScalaExample / githubPackageName $packageName not $expectedPackageName"
+          s"crossScalaExample / githubPackage $packageName not $expectedPackageName"
         )
       }
     }).value,
@@ -85,11 +85,11 @@ lazy val crossPlatformExample = crossProject(JSPlatform, JVMPlatform)
       }
 
       val expectedPackageName = s"com.example.cross-platform-example_${prefix}${scalaBinaryVersion.value}${suffix}"
-      val packageName = githubPackageName.value
+      val packageName = githubPackage.value
       Def.task {
         assert(
           packageName == expectedPackageName,
-          s"crossPlatformExample / githubPackageName $packageName not $expectedPackageName"
+          s"crossPlatformExample / githubPackage $packageName not $expectedPackageName"
         )
       }
     }).value,
@@ -119,12 +119,12 @@ lazy val javaProjectExample = (project in file("java-project-example"))
     crossScalaVersions := Seq(Scala212),
     githubRepository := "github-packages-tests",
     checkGithubPackageName := (Def.taskDyn {
-      val packageName = githubPackageName.value
+      val packageName = githubPackage.value
       val expectedPackageName = "com.example.java-project-example"
       Def.task {
         assert(
           packageName == expectedPackageName,
-          s"javaProjectExample / githubPackageName $packageName not $expectedPackageName"
+          s"javaProjectExample / githubPackage $packageName not $expectedPackageName"
         )
       }
     }).value,
@@ -155,14 +155,15 @@ lazy val sbtPluginExample = project.in(file("sbt-plugin-example"))
     },
     githubRepository := "github-packages-tests",
     checkGithubPackageName := (Def.taskDyn {
+      val packageName = githubPackage.value
       val expectedPackageName = scalaBinaryVersion.value match {
         case "2.10" => "com.example.sbt-plugin-example_2.10_0.13"
         case "2.12" => "com.example.sbt-plugin-example_2.12_1.0"
       }
       Def.task {
         assert(
-          githubPackageName.value == expectedPackageName,
-          s"sbtPluginExample / githubPackageName not $expectedPackageName"
+          packageName == expectedPackageName,
+          s"sbtPluginExample / githubPackage $packageName not $expectedPackageName"
         )
       }
     }).value,

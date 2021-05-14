@@ -39,7 +39,7 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
       val repoName = githubRemoteCacheRepository.value
       val context = GitHubCredentialContext.remoteCache(credsFile)
 
-      GitHub.withRepo(context, owner, repoName, sLog.value) { _ =>
+      GitHub.withRepo(context, Some(owner), repoName, sLog.value) { _ =>
         Resolver.githubRepo(owner, githubRemoteCachePackage.value)
 //        Repository.githubRepo(owner, repoName)
 //        repo.buildRemoteCacheResolver(githubRemoteCachePackage.value, sLog.value)
@@ -56,7 +56,7 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
       val s = Keys.streams.value
       val min = githubRemoteCacheMinimum.value
       val ttl = githubRemoteCacheTtl.value
-      GitHub.withRepo(context, owner, repoName, s.log) { repo =>
+      GitHub.withRepo(context, Some(owner), repoName, s.log) { repo =>
         repo.cleandOldVersions(pkg, min, ttl, s.log)
       }
     }
