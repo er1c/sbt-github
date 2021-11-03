@@ -12,7 +12,6 @@ lazy val mavenStyle = (project in file("maven-style"))
     githubOwner := Some("tinyrick"),
     githubRepository := "evilmorty",
     TaskKey[Unit]("check") := {
-      println(s"resolvers: ${resolvers.value}")
       assert(resolvers.value.filter(_.name.equals("github-tinyrick-evilmorty")).head.isInstanceOf[MavenRepository],
         "A maven style project should have a maven repository as it default resolver"
       )
@@ -20,16 +19,17 @@ lazy val mavenStyle = (project in file("maven-style"))
   )
 
 // TODO: GitHub Packages doesn't support ivy-style
-//lazy val ivyStyle = (project in file("ivy-style"))
-//  .settings(
-//    version := "0.1",
-//    scalaVersion := "2.10.6",
-//    publishMavenStyle := false,
-//    githubOwner := Some("tinyrick"),
-//    githubRepository := "evilmorty",
-//    TaskKey[Unit]("check") := {
-//      assert(resolvers.value.filter(_.name.equals("github-tinyrick-evilmorty")).head.isInstanceOf[URLRepository],
-//        "An ivy style project should have a URL repository as it default resolver"
-//      )
-//    }
-//  )
+lazy val ivyStyle = (project in file("ivy-style"))
+  .settings(
+    version := "0.1",
+    scalaVersion := "2.10.6",
+    publishMavenStyle := false,
+    githubOwner := Some("tinyrick"),
+    githubRepository := "evilmorty",
+    // TODO: Maybe this can get set to empty rather than throwing an error
+    TaskKey[Unit]("check") := {
+      assert(resolvers.value.filter(_.name.equals("github-tinyrick-evilmorty")).isEmpty,
+        "An ivy style project should not have any resolvers"
+      )
+    }
+  )

@@ -2,16 +2,8 @@ package github
 
 import sbt._
 
-import scala.concurrent.duration.Duration
-
 trait GitHubKeys {
   val github = taskKey[String]("sbt-github is an interface for the github package service")
-
-  val githubRelease = taskKey[Unit](
-    "Releases a version of package on github")
-
-  val githubReleaseOnPublish = settingKey[Boolean](
-    "When set to true, publish also runs githubRelease")
 
   val githubOwner = settingKey[Option[String]](
     "GitHub user or organization name, default None.")
@@ -24,6 +16,9 @@ trait GitHubKeys {
 
   val githubRepository = settingKey[String](
     "GitHub repository to publish to. Defaults to 'maven' unless project is an sbtPlugin")
+
+  val githubResolverName = settingKey[String](
+    "GitHub resolver name, default github-{githubOwner}-{githubRepository}.")
 
   val githubPackageLabels = settingKey[Seq[String]](
     "List of labels associated with your github package")
@@ -40,32 +35,14 @@ trait GitHubKeys {
   val githubWhoami = taskKey[String](
     "Print the name of the currently authenticated github user")
 
-  val githubOmitLicense = settingKey[Boolean](
-     "Omit license, useful if publishing to a private repo. Defaults to false")
-
-  val githubEnsureLicenses = taskKey[Unit](
-    "Ensure that the licenses for github are valid.")
-
   val githubEnsureCredentials = taskKey[GitHubCredentials](
     "Ensure that the credentials for github are valid.")
-
-  val githubEnsureGitHubPackageExists = taskKey[Unit](
-    "Ensure that the github package exists and is valid.")
 
   val githubUnpublish = taskKey[Unit](
     "Unpublishes a version of package on github")
 
   val githubRemoteSign = taskKey[Unit](
     "PGP sign artifacts hosted remotely on github. (See also https://github.com/docs/uploads/uploads_gpgsigning.html)")
-
-  val githubSyncMavenCentral = taskKey[Unit](
-    "Sync github-published artifacts with maven central")
-
-  val githubSyncSonatypeStaging = taskKey[Unit](
-    "Sync github-published artifacts with sonatype staging repo without releasing them to maven central")
-
-  val githubSyncMavenCentralRetries = settingKey[Seq[Duration]](
-    "In case of synchronization failure, it will be retried according to delays sepcified. Set to empty sequence for no retries.")
 
   val githubVcsUrl = taskKey[Option[String]](
     "Canonical url for hosted version control repository")

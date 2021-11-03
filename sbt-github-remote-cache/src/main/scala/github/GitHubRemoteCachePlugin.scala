@@ -38,8 +38,9 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
       val repoName = githubRemoteCacheRepository.value
       val context = GitHubCredentialContext.remoteCache(credsFile)
       val ownerType = githubRemoteCacheOwnerType.value
+      val isMavenStyle = publishMavenStyle.value
       GitHub.withRepo(context, Some(owner), ownerType, repoName, sLog.value) { repo =>
-        repo.buildRemoteCacheResolver(githubRemoteCachePackage.value, sLog.value)
+        repo.buildRemoteCacheResolver(isMavenStyle)
       }
     }
 

@@ -7,7 +7,6 @@ import scala.util.Try
 object GitHub {
   import GitHubResolverSyntax._
   val defaultMavenRepository = "maven"
-  // http://www.scala-sbt.org/0.13/docs/Bintray-For-Plugins.html
   val defaultSbtPluginRepository = "sbt-plugins"
 
   private[github] object await {
@@ -15,16 +14,15 @@ object GitHub {
     import scala.concurrent.duration.Duration
 
     def result[T](f: => Future[T]): T = Await.result(f, Duration.Inf)
-    def ready[T](f: => Future[T]) = Await.ready(f, Duration.Inf)
+    def ready[T](f: => Future[T]): Unit = Await.ready(f, Duration.Inf)
   }
 
   def publishTo(
     owner: String,
     repoName: String,
     mvnStyle: Boolean = true,
-  ): Resolver =
-    if (mvnStyle) RawRepository(Resolver.githubRepo(owner, repoName))
-    else sys.error("GitHub Packages does not support ivy-style")
+    log: sbt.Logger,
+  ): Resolver = makeResolver(owner, repoName, mvnStyle, log)
 
   def withRepo[A](context: GitHubCredentialContext, owner: Option[String], ownerType: GitHubOwnerType, repoName: String, log: Logger)
     (f: GitHubRepo => A): Option[A] =
@@ -47,22 +45,29 @@ object GitHub {
   private[github] def ensuredCredentials(
     context: GitHubCredentialContext,
     log: sbt.Logger
-  ): Option[GitHubCredentials] =
-    propsCredentials(context)
-      .orElse(envCredentials(context))
-      .orElse(GitHubCredentials.read(context.credsFile))
+  ): Option[GitHubCredentials] = {
+    propsCredentials(context, log)
+      .orElse(envCredentials(context, log))
+      .orElse(GitHubCredentials.read(context.credsFile, log))
+  }
 
-  private def propsCredentials(context: GitHubCredentialContext): Option[GitHubCredentials] =
+  private def propsCredentials(context: GitHubCredentialContext, log: sbt.Logger): Option[GitHubCredentials] =
     for {
       name <- sys.props.get(context.userProp)
       pass <- sys.props.get(context.tokenProp)
-    } yield GitHubCredentials(name, pass)
+    } yield {
+      log.info(s"Using Property-based credentials.")
+      GitHubCredentials(name, pass)
+    }
 
-  private def envCredentials(context: GitHubCredentialContext): Option[GitHubCredentials] =
+  private def envCredentials(context: GitHubCredentialContext, log: sbt.Logger): Option[GitHubCredentials] =
     for {
       name <- sys.env.get(context.userEnv)
       pass <- sys.env.get(context.tokenEnv)
-    } yield GitHubCredentials(name, pass)
+    } yield {
+      log.info(s"Using Environment-based credentials.")
+      GitHubCredentials(name, pass)
+    }
 
   private def saveGitHubCredentials(to: File)(creds: (String, String), log: Logger): Unit = {
     log.info(s"saving credentials to $to")
@@ -104,8 +109,11 @@ object GitHub {
 
   // endregion
 
-  def remoteCache(owner: String, repoName: String): Resolver =
-    GitHubResolverSyntax.makeMavenRepository(owner, repoName)
+  def remoteCache(
+    owner: String,
+    repoName: String,
+    mvnStyle: Boolean = true,
+  ): Resolver = makeRepository(owner, repoName, mvnStyle)
 
   def resolveVcsUrl: Try[Option[String]] =
     Try {
@@ -130,15 +138,39 @@ object GitHub {
     repoName: String,
     mavenStyle: Boolean,
     log: sbt.Logger
-  ): Seq[Resolver] =
+  ): Seq[Resolver] = {
     creds.map {
-      case GitHubCredentials(user, _) => Seq(
+      case GitHubCredentials(user, _) =>
         if (mavenStyle) {
-          Resolver.githubRepo(owner.getOrElse(user), repoName)
+          Seq(Resolver.githubRepo(owner.getOrElse(user), repoName))
         } else {
-          log.warn(s"publishMavenStyle is set to false, and GitHub Packages doesn't support ivy, consider 'InThisBuild / publishMavenStyle := true'")
-          Resolver.githubIvyRepo(owner.getOrElse(user), repoName)
+          log.warn(IvyStyleNotSupported)
+          Nil
         }
-      )
     } getOrElse Nil
+  }
+
+  private def makeRepository(
+    owner: String,
+    repoName: String,
+    mvnStyle: Boolean
+  ): RawRepository = {
+    if (mvnStyle) {
+      RawRepository(Resolver.githubRepo(owner, repoName))
+    } else {
+      sys.error(IvyStyleNotSupported)
+    }
+  }
+
+  private def makeResolver(
+    owner: String,
+    repoName: String,
+    mvnStyle: Boolean,
+    log: sbt.Logger,
+  ): Resolver = {
+    if (!mvnStyle) log.warn(IvyStyleNotSupported)
+    Resolver.githubRepo(owner, repoName)
+  }
+
+  private final val IvyStyleNotSupported = "publishMavenStyle is set to false, and GitHub Packages doesn't support ivy, consider 'InThisBuild / publishMavenStyle := true'"
 }

@@ -34,7 +34,7 @@ object GitHubCredentials {
   //    val template = templateSrc(Realm, Host)_
   //  }
 
-  def read(path: File): Option[GitHubCredentials] = {
+  def read(path: File, log: sbt.Logger): Option[GitHubCredentials] = {
     path match {
       case creds if creds.exists =>
         import scala.collection.JavaConverters._
@@ -46,8 +46,12 @@ object GitHubCredentials {
 
         val missing = Keys.filter(!mapped.contains(_))
 
-        if (!missing.isEmpty) None
-        else Some(GitHubCredentials(mapped("user"), mapped("password")))
+        if (!missing.isEmpty) {
+          None
+        } else {
+          log.info(s"Using File-based credentials (${path.getAbsolutePath}).")
+          Some(GitHubCredentials(mapped("user"), mapped("password")))
+        }
       case _ => None
     }
   }
