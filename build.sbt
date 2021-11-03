@@ -17,6 +17,56 @@ ThisBuild / scalaVersion := "2.12.12"
 
 //ThisBuild / version := "0.1.0-SNAPSHOT"
 
+ThisBuild / githubWorkflowOSes  := Seq("ubuntu-latest", "macos-latest", "windows-latest")
+ThisBuild / githubWorkflowEnv   := Map.empty // ignore the default GITHUB_TOKEN for now
+ThisBuild / githubWorkflowBuild := Seq(
+  // Using credentials files to allow individual tests to use different information, this is the default
+  WorkflowStep.Run(
+    commands = {
+      List(
+        """|mkdir ~/.github && echo "
+           |realm = GitHub API Realm
+           |host = api.github.com
+           |user = $GITHUB_USER
+           |password = $GITHUB_TOKEN
+           |" >> ~/.github/.credentials
+           |""".stripMargin)
+    },
+    env = Map(
+      "GITHUB_USER" -> "${{ secrets.GITHUB_USER }}",
+      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
+    ),
+  ),
+  WorkflowStep.Sbt(
+    commands = List("test", "scripted"),
+    env = Map.empty,
+  )
+)
+
+// dummy publication just to test that setup works
+ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.Equals(Ref.Branch("main")))
+ThisBuild / githubWorkflowPublish := Seq()
+
+//ThisBuild / githubWorkflowPublishPreamble := Seq(WorkflowStep.Run(
+//  List("git config user.name \"Github Actions (dimitarg/bb-webhook)\"")
+//))
+
+//ThisBuild / githubWorkflowPublishPreamble += WorkflowStep.Use("olafurpg", "setup-gpg", "v3"),
+//ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+//ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v")))
+//ThisBuild / githubWorkflowPublish := Seq(WorkflowStep.Sbt(
+//  List("ci-release"),
+//  env = Map(
+//    "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+//    "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+//    "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+//    "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+//  )
+//))
+
+// Update ci via `sbt githubWorkflowGenerate`
+
+
 val dispatchVersion = "1.2.0"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
