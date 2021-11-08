@@ -1,4 +1,9 @@
-# sbt-github
+sbt-github
+----------
+[![Continuous Integration](https://github.com/er1c/sbt-github/actions/workflows/ci.yml/badge.svg)](https://github.com/er1c/sbt-github/actions/workflows/ci.yml)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-github_2.12_1.0/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github_2.12_1.0)
+[![Scaladoc](https://javadoc.io/badge2/io.github.er1c/sbt-github_2.12_1.0/javadoc.svg?label=Scaladoc)](https://javadoc.io/doc/io.github.er1c/sbt-github_2.12_1.0)
+
 
 Forking/refactoring `sbt-github` for GitHub support
 
