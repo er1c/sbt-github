@@ -2,12 +2,11 @@ package github
 
 import sbt._
 import scala.collection.concurrent.TrieMap
-import scala.util.Try
 
 object GitHub {
   import GitHubResolverSyntax._
   val defaultMavenRepository = "maven"
-  val defaultSbtPluginRepository = "sbt-plugins"
+  val defaultRemoteCacheMavenRepository = "remote-cache"
 
   private[github] object await {
     import scala.concurrent.{ Await, Future }
@@ -24,16 +23,16 @@ object GitHub {
     log: sbt.Logger,
   ): Resolver = makeResolver(owner, repoName, mvnStyle, log)
 
-  def withRepo[A](context: GitHubCredentialContext, owner: Option[String], ownerType: GitHubOwnerType, repoName: String, log: Logger)
+  def withRepo[A](context: GitHubCredentialContext, owner: String, ownerType: GitHubOwnerType, repoName: String, log: Logger)
     (f: GitHubRepo => A): Option[A] =
     ensuredCredentials(context, log) map { cred =>
       val repo = cachedRepo(cred, owner, ownerType, repoName)
       f(repo)
     }
 
-  private val repoCache: TrieMap[(GitHubCredentials, Option[String], String), GitHubRepo] = TrieMap()
+  private val repoCache: TrieMap[(GitHubCredentials, String, String), GitHubRepo] = TrieMap()
 
-  def cachedRepo(credential: GitHubCredentials, owner: Option[String], ownerType: GitHubOwnerType, repoName: String): GitHubRepo =
+  def cachedRepo(credential: GitHubCredentials, owner: String, ownerType: GitHubOwnerType, repoName: String): GitHubRepo =
     repoCache.synchronized {
       // lock to avoid creating and leaking HTTP client threadpools
       // see: https://github.com/sbt/sbt-bintray/issues/144
@@ -113,53 +112,25 @@ object GitHub {
     owner: String,
     repoName: String,
     mvnStyle: Boolean = true,
-  ): Resolver = makeRepository(owner, repoName, mvnStyle)
-
-  def resolveVcsUrl: Try[Option[String]] =
-    Try {
-      val pushes =
-        sys.process.Process("git" :: "remote" :: "-v" :: Nil).!!.split("\n")
-          .flatMap {
-            _.split("""\s+""") match {
-              case Array(name, url, "(push)") => Some((name, url))
-              case _                          => None
-            }
-          }
-
-      pushes
-        .find { case (name, _) => "origin" == name }
-        .orElse(pushes.headOption)
-        .map { case (_, url) => url }
-    }
+    log: sbt.Logger,
+  ): Resolver = makeResolver(owner, repoName, mvnStyle, log)
 
   private[github] def buildResolvers(
     creds: Option[GitHubCredentials],
-    owner: Option[String],
+    owner: String,
     repoName: String,
     mavenStyle: Boolean,
     log: sbt.Logger
   ): Seq[Resolver] = {
     creds.map {
-      case GitHubCredentials(user, _) =>
+      case GitHubCredentials(_, _) =>
         if (mavenStyle) {
-          Seq(Resolver.githubRepo(owner.getOrElse(user), repoName))
+          Seq(Resolver.githubRepo(owner, repoName))
         } else {
           log.warn(IvyStyleNotSupported)
           Nil
         }
     } getOrElse Nil
-  }
-
-  private def makeRepository(
-    owner: String,
-    repoName: String,
-    mvnStyle: Boolean
-  ): RawRepository = {
-    if (mvnStyle) {
-      RawRepository(Resolver.githubRepo(owner, repoName))
-    } else {
-      sys.error(IvyStyleNotSupported)
-    }
   }
 
   private def makeResolver(

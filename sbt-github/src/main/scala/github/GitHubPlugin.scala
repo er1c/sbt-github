@@ -1,6 +1,6 @@
 package github
 
-import sbt.{ AutoPlugin, Credentials, Global, Path, Resolver, Setting, Task, Tags, ThisBuild }
+import sbt.{ AutoPlugin, Credentials, Global, Path, Resolver, Setting, Task, Tags }
 import sbt.Classpaths.publishTask
 import sbt.Def.{ Initialize, setting, task, taskDyn }
 import sbt.Keys._
@@ -14,10 +14,9 @@ object GitHubPlugin extends AutoPlugin {
   override def trigger = allRequirements
 
   override def globalSettings: Seq[Setting[_]] = globalPublishSettings
-  override def buildSettings: Seq[Setting[_]] = buildPublishSettings
   override def projectSettings: Seq[Setting[_]] = githubSettings
 
-  lazy val isEnabledViaProp: Boolean = sys.props.get("sbt.sbtgithub")
+  lazy val isEnabledViaProp: Boolean = sys.props.get("sbt.sbt-github")
     .getOrElse("true").toLowerCase(java.util.Locale.ENGLISH) match {
     case "true" | "1" | "always" => true
     case _ => false
@@ -50,48 +49,60 @@ object GitHubPlugin extends AutoPlugin {
     concurrentRestrictions in Global += Tags.exclusive(Git)
   )
 
-  def buildPublishSettings: Seq[Setting[_]] = Seq(
-    githubOwner in ThisBuild := None
-  )
-
   def githubPublishSettings: Seq[Setting[_]] = githubCommonSettings ++ Seq(
     githubPackage := moduleName.value,
     githubPackageName := githubPackageNameTask.value,
-    githubRepo := GitHub.cachedRepo(
-      githubEnsureCredentials.value,
-      githubOwner.value,
-      githubOwnerType.value,
-      githubRepository.value
-    ),
+    githubRepo := {
+      val creds = githubEnsureCredentials.value
+      val ownerType = githubOwnerType.value
+
+      for {
+        owner <- githubOwner.?.value
+        repoName <- githubRepository.?.value
+      } yield {
+        GitHub.cachedRepo(
+          creds,
+          owner,
+          ownerType,
+          repoName
+        )
+      }
+    },
     githubOwnerType := GitHubOwnerType.User,
-    // todo: don't force this to be sbt-plugin-releases
-    githubRepository := {
-      if (sbtPlugin.value) GitHub.defaultSbtPluginRepository
-      else GitHub.defaultMavenRepository
-    },
-    publishMavenStyle := {
-      if (sbtPlugin.value) false
-      else publishMavenStyle.value
-    },
-    githubPackageLabels := Nil,
+    githubRepository := GitHub.defaultMavenRepository,
+    publishMavenStyle := true,
     description in github := description.value,
     // note: publishTo may not have dependencies. therefore, we can not rely well on inline overrides
     // for inline credentials resolution we recommend defining githubCredentials _before_ mixing in the defaults
     // perhaps we should try overriding something in the publishConfig setting -- https://github.com/sbt/sbt-pgp/blob/master/pgp-plugin/src/main/scala/com/typesafe/sbt/pgp/PgpSettings.scala#L124-L131
     publishTo in github := publishToGitHub.value,
-    //githubResolverName := GitHubResolverSyntax.makeGitHubRepoName(githubOwner.value.getOrElse(crede), githubRepository.value),
+    githubResolverName := {
+      val ret = for {
+        owner <- githubOwner.?.value
+        repo <- githubRepository.?.value
+      } yield GitHubResolverSyntax.makeGitHubRepoName(owner, repo)
+
+      ret.getOrElse("github")
+    },
     resolvers in github := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
-      GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
-        githubOwner.value,
-        githubRepository.value,
-        publishMavenStyle.value,
-        sLog.value
-      )
+      for {
+        owner <- (githubOwner.?.value: Option[String]).toSeq
+        repo <- (githubRepository.?.value: Option[String]).toSeq
+        context = GitHubCredentialContext(githubCredentialsFile.value)
+        resolver <- GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
+          owner,
+          repo,
+          publishMavenStyle.value,
+          sLog.value
+        )
+      } yield resolver
     },
     credentials in github := {
-      val repo = githubRepo.value
-      Seq(Credentials("GitHub Package Registry", "maven.pkg.github.com", repo.credentials.user, repo.credentials.token))
+      val ret = for {
+        repo <- githubRepo.value
+      } yield Seq(Credentials("GitHub Package Registry", "maven.pkg.github.com", repo.credentials.user, repo.credentials.token))
+
+      ret.getOrElse(Nil)
     },
     githubEnsureCredentials := {
       val context = GitHubCredentialContext(githubCredentialsFile.value)
@@ -103,6 +114,14 @@ object GitHubPlugin extends AutoPlugin {
       }
     },
     githubUnpublish := dynamicallyGitHubUnpublish.value,
+    scmInfo := {
+      val ret = for {
+        owner <- githubOwner.?.value
+        repo <- githubRepository.?.value
+      } yield ScmInfo(url(s"https://github.com/$owner/$repo"), s"scm:git@github.com:$owner/$repo.git")
+
+      ret.orElse(scmInfo.value)
+    },
   ) ++ Seq(
     resolvers ++= {
       val rs = (resolvers in github).value
@@ -160,40 +179,50 @@ object GitHubPlugin extends AutoPlugin {
 
   private def dynamicallyGitHubUnpublish0: Initialize[Task[Unit]] = Def.task {
     val repo = githubRepo.value
-    repo.unpublish(githubPackage.value, version.value, streams.value.log)
+    repo.foreach {
+      _.unpublish(githubPackage.value, version.value, streams.value.log)
+    }
   }
 
   /** set a user-specific github endpoint for sbt's `publishTo` setting.*/
   private def publishToGitHub: Initialize[Option[Resolver]] = setting {
+    val publishEnabled = publishArtifact.value
     val credsFile = githubCredentialsFile.value
-    val owner = githubOwner.value
-    val repoName = githubRepository.value
     val ownerType = githubOwnerType.value
     val context = GitHubCredentialContext(credsFile)
-    val publishEnabled = publishArtifact.value
 
     if (publishEnabled) {
-      // ensure that we have credentials to build a resolver that can publish to github
-      GitHub.withRepo(context, owner, ownerType, repoName, sLog.value) { repo =>
-        repo.buildPublishResolver(publishMavenStyle.value, sLog.value)
-      }
+      for {
+        owner <- githubOwner.?.value
+        repo <- githubRepository.?.value
+        // ensure that we have credentials to build a resolver that can publish to github
+        resolver <- GitHub.withRepo(context, owner, ownerType, repo, sLog.value) { repo =>
+          repo.buildPublishResolver(publishMavenStyle.value, sLog.value)
+        }
+      } yield resolver
     } else {
       None
     }
   }
 
   /** Lists versions of github packages corresponding to the current project */
-  private def packageVersionsTask: Initialize[Task[Seq[String]]] = task {
+  private def packageVersionsTask: Initialize[Task[Seq[String]]] = taskDyn {
     val credsFile = githubCredentialsFile.value
-    val owner = githubOwner.value
-    val repoName = githubRepository.value
     val context = GitHubCredentialContext(credsFile)
-    val fullPackageName = githubPackageName.value
     val ownerType = githubOwnerType.value
-    streams.value.log.error(s"packageVersionTask - fullPackageName: $fullPackageName")
-    GitHub.withRepo(context, owner, ownerType, repoName, streams.value.log) { repo =>
-      repo.packageVersions(fullPackageName, streams.value.log)
-    }.getOrElse(Nil)
+
+    Def.task {
+      val ret = for {
+        owner <- githubOwner.?.value
+        repoName <- githubRepository.?.value
+        fullPackageName <- githubPackageName.?.value
+        versions <- GitHub.withRepo(context, owner, ownerType, repoName, streams.value.log) { repo =>
+          repo.packageVersions(fullPackageName, streams.value.log)
+        }
+      } yield versions
+
+      ret.getOrElse(Nil)
+    }
   }
 
 
@@ -215,8 +244,8 @@ object GitHubPlugin extends AutoPlugin {
     } else if (isCrossPathsEnabled) {
       val (prefix, suffix) = projectModuleId.crossVersion match {
         case _: librarymanagement.Disabled => ("", "")
-        case _: librarymanagement.Constant => ???
-        case _: librarymanagement.Patch => ???
+        case _: librarymanagement.Constant => sys.error("Unsupported projectModuleId.crossVersion: sbt.librarymanagement.Constant")
+        case _: librarymanagement.Patch => sys.error("Unsupported projectModuleId.crossVersion: sbt.librarymanagement.Path")
         case binary: librarymanagement.Binary => (binary.prefix, binary.suffix)
       }
 

@@ -30,7 +30,7 @@ ThisBuild / version := "0.1.0"
 ThisBuild / organization := "com.example"
 ThisBuild / organizationName := "example"
 ThisBuild / publishMavenStyle := true
-ThisBuild / githubOwner := Some("er1c")
+ThisBuild / githubOwner := "er1c"
 ThisBuild / githubRepository := "github-packages-tests"
 ThisBuild / logLevel := Level.Debug
 
@@ -142,44 +142,44 @@ lazy val javaProjectExample = (project in file("java-project-example"))
     }).value,
   )
 
-//lazy val sbtPluginExample = project.in(file("sbt-plugin-example"))
-//  .enablePlugins(SbtPlugin)
-//  .settings(
-//    name := "sbt-plugin-example",
-//    scalaVersion := Scala212,
-//    crossScalaVersions := Seq(Scala210, Scala212),
-//    pluginCrossBuild / sbtVersion := {
-//      scalaBinaryVersion.value match {
-//        case "2.10" => "0.13.8"
-//        case "2.12" => "1.2.1"
-//        case _ => (pluginCrossBuild / sbtVersion).value
-//      }
-//    },
-//    githubRepository := "github-packages-tests",
-//    checkGithubPackageName := (Def.taskDyn {
-//      val packageName = githubPackageName.value
-//      val expectedPackageName = scalaBinaryVersion.value match {
-//        case "2.10" => "com.example.sbt-plugin-example_2.10_0.13"
-//        case "2.12" => "com.example.sbt-plugin-example_2.12_1.0"
-//      }
-//      Def.task {
-//        assert(
-//          packageName == expectedPackageName,
-//          s"sbtPluginExample / githubPackage $packageName not $expectedPackageName"
-//        )
-//      }
-//    }).value,
-//    checkGithubPackageVersions := (Def.taskDyn {
-//      val versions = githubPackageVersions.value
-//      val expectedVersions = List("0.1.0")
-//      Def.task {
-//        assert(
-//          versions == expectedVersions,
-//          s"sbtPluginExample / githubPackageVersions $versions not $expectedVersions"
-//        )
-//      }
-//    }).value,
-//  )
+lazy val sbtPluginExample = project.in(file("sbt-plugin-example"))
+  .enablePlugins(SbtPlugin)
+  .settings(
+    name := "sbt-plugin-example",
+    scalaVersion := Scala212,
+    crossScalaVersions := Seq(Scala210, Scala212),
+    pluginCrossBuild / sbtVersion := {
+      scalaBinaryVersion.value match {
+        case "2.10" => "0.13.8"
+        case "2.12" => "1.2.1"
+        case _ => (pluginCrossBuild / sbtVersion).value
+      }
+    },
+    githubRepository := "github-packages-tests",
+    checkGithubPackageName := (Def.taskDyn {
+      val packageName = githubPackageName.value
+      val expectedPackageName = scalaBinaryVersion.value match {
+        case "2.10" => "com.example.sbt-plugin-example_2.10_0.13"
+        case "2.12" => "com.example.sbt-plugin-example_2.12_1.0"
+      }
+      Def.task {
+        assert(
+          packageName == expectedPackageName,
+          s"sbtPluginExample / githubPackage $packageName not $expectedPackageName"
+        )
+      }
+    }).value,
+    checkGithubPackageVersions := (Def.taskDyn {
+      val versions = githubPackageVersions.value
+      val expectedVersions = List("0.1.0")
+      Def.task {
+        assert(
+          versions == expectedVersions,
+          s"sbtPluginExample / githubPackageVersions $versions not $expectedVersions"
+        )
+      }
+    }).value,
+  )
 
 lazy val root = project.in(file("."))
   .aggregate(

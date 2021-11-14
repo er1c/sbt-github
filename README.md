@@ -39,6 +39,22 @@ Note that when specifying `sbt-github` settings in `project/*.scala` files (as o
 import github.GitHubPluginKeys._
 ```
 
+### GitHub User
+
+```scala
+ThisBuild / githubOwner := "er1c"
+ThisBuild / githubOwnerType := GitHubOwnerType.User
+ThisBuild / githubRepository := "sbt-github"
+```
+
+### GitHub Organization
+
+```scala
+ThisBuild / githubOwner := "sbt"
+ThisBuild / githubOwnerType := GitHubOwnerType.Organization
+ThisBuild / githubRepository := "io"
+```
+
 ### Publishing
 
 To publish a package to github, you need a github account. You can register for one [here](https://github.com/signup/index). 
@@ -48,7 +64,7 @@ This plugin will upload and release your artifacts into github when you run `pub
 To exclude a project from being published (for example a root or a tests project) use the `skip` setting:
 
 ```scala
-skip in publish := true
+publish / skip := true
 ```
 
 At any time you can check who you will be authenticated as with the `githubWhoami` setting which will print your github username
@@ -85,11 +101,11 @@ You may optionally wish to publish to a [github organization](https://github.com
 instead of your individual github user account. To do so, use the `githubOrganization` setting in your project's build definition.
 
 ```scala
-githubOrganization := Some("strength-in-numbers")
+githubOwner := Some("strength-in-numbers")
+githubOwnerType := GitHubOwnerType.Organization
 ```
 
-By default, a [github Maven repository](https://github.com/docs/usermanual/uploads/uploads_yourrepositories.html) for a github user or
-organization is named `maven`.  If your Maven repository is named differently, you will need to specify the `githubRepository` setting.
+The default GitHub repository, for a github user or organization is named `maven`. If your Maven repository is named differently, you will need to specify the `githubRepository` setting.
 
 ```scala
 githubRepository := "oss-maven"
@@ -97,7 +113,7 @@ githubRepository := "oss-maven"
 
 ##### Public (default)
 
-If your project uses a license, github supports several [OSS licenses](https://github.com/docs/api/#_get_oss_licenses). If you are new to software licenses you may
+If your project uses a license, github supports several [OSS licenses](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository). If you are new to software licenses you may
 want to grab a coffee and absorb some [well organized information](http://choosealicense.com/) on the topic of choice.
 Sbt already defines a `licenses` setting key. In order to use github sbt you must define your `licenses` key to contain a license with a name matching
 one of those github defines. I recommend [MIT](http://choosealicense.com/licenses/mit/).

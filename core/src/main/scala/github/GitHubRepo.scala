@@ -10,24 +10,23 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
-case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], ownerType: GitHubOwnerType, repoName: String)  extends DispatchHandlers {
+case class GitHubRepo(credentials: GitHubCredentials, owner: String, ownerType: GitHubOwnerType, repoName: String)  extends DispatchHandlers {
   import dispatch.as
   import GitHub.await
 
   lazy val http: Http = Http(Http.defaultClientBuilder)
   lazy val client: OAuthClient = OAuthClient(credentials.token, MediaType.default)
-  private val repoOwner: String = owner.getOrElse(credentials.user)
-  lazy val repo = gh.repo(repoOwner, repoName)
+  lazy val repo = gh.repo(owner, repoName)
 
-  val resolverName: String = GitHubResolverSyntax.makeGitHubRepoName(repoOwner, repoName)
+  val resolverName: String = GitHubResolverSyntax.makeGitHubRepoName(owner, repoName)
 
   def close(): Unit = http.shutdown()
 
   def buildPublishResolver(mvnStyle: Boolean, log: sbt.Logger): Resolver =
-    GitHub.publishTo(repoOwner, repoName, mvnStyle, log)
+    GitHub.publishTo(owner, repoName, mvnStyle, log)
 
-  def buildRemoteCacheResolver(mvnStyle: Boolean): Resolver = {
-    GitHub.remoteCache(repoOwner, repoName, mvnStyle)
+  def buildRemoteCacheResolver(mvnStyle: Boolean, log: sbt.Logger): Resolver = {
+    GitHub.remoteCache(owner, repoName, mvnStyle, log)
   }
 
   /** unpublish (delete) a version of a package */
@@ -36,8 +35,8 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], own
       if (ver.name == vers) {
 
         val req = ownerType match {
-          case GitHubOwnerType.Org => client(orgs(repoOwner).`package`("maven", packageName).deleteVersion(ver.id)) > asStatusAndBody
-          case GitHubOwnerType.User => client(user(repoOwner).`package`("maven", packageName).deleteVersion(ver.id)) > asStatusAndBody
+          case GitHubOwnerType.Organization => client(orgs(owner).`package`("maven", packageName).deleteVersion(ver.id)) > asStatusAndBody
+          case GitHubOwnerType.User => client(user(owner).`package`("maven", packageName).deleteVersion(ver.id)) > asStatusAndBody
         }
 
         await.result(
@@ -61,8 +60,8 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], own
 
   private def packageVersionsImpl(packageName: String, log: Logger): Seq[PackageVersion] = {
     val req = ownerType match {
-      case GitHubOwnerType.Org => client(orgs(repoOwner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
-      case GitHubOwnerType.User => client(user(repoOwner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
+      case GitHubOwnerType.Organization => client(orgs(owner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
+      case GitHubOwnerType.User => client(user(owner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
     }
 
     log.info(s"fetching package versions for package $packageName")
@@ -75,8 +74,8 @@ case class GitHubRepo(credentials: GitHubCredentials, owner: Option[String], own
 
   def packageVersionUpdatedDate(packageName: String, version: String): Instant = {
     val req = ownerType match {
-      case GitHubOwnerType.Org => client(orgs(repoOwner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
-      case GitHubOwnerType.User => client(user(repoOwner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
+      case GitHubOwnerType.Organization => client(orgs(owner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
+      case GitHubOwnerType.User => client(user(owner).`package`("maven", packageName).versions.page(1).per_page(100)) > as.repatch.github.response.PackageVersions
     }
 
     await.result(

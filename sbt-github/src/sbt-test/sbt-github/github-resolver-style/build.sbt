@@ -9,7 +9,7 @@ lazy val mavenStyle = (project in file("maven-style"))
       assert(f.isFile, s"didn't find credentials file: $f")
       f
     },
-    githubOwner := Some("tinyrick"),
+    githubOwner := "tinyrick",
     githubRepository := "evilmorty",
     TaskKey[Unit]("check") := {
       assert(resolvers.value.filter(_.name.equals("github-tinyrick-evilmorty")).head.isInstanceOf[MavenRepository],
@@ -24,7 +24,7 @@ lazy val ivyStyle = (project in file("ivy-style"))
     version := "0.1",
     scalaVersion := "2.10.6",
     publishMavenStyle := false,
-    githubOwner := Some("tinyrick"),
+    githubOwner := "tinyrick",
     githubRepository := "evilmorty",
     // TODO: Maybe this can get set to empty rather than throwing an error
     TaskKey[Unit]("check") := {
