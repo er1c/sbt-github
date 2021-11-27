@@ -180,7 +180,7 @@ object GitHubPlugin extends AutoPlugin {
   private def dynamicallyGitHubUnpublish0: Initialize[Task[Unit]] = Def.task {
     val repo = githubRepo.value
     repo.foreach {
-      _.unpublish(githubPackage.value, version.value, streams.value.log)
+      _.unpublish(githubPackageName.value, version.value, streams.value.log)
     }
   }
 
@@ -206,7 +206,7 @@ object GitHubPlugin extends AutoPlugin {
   }
 
   /** Lists versions of github packages corresponding to the current project */
-  private def packageVersionsTask: Initialize[Task[Seq[String]]] = taskDyn {
+  private def packageVersionsTask: Initialize[Task[Seq[String]]] = Def.taskDyn {
     val credsFile = githubCredentialsFile.value
     val context = GitHubCredentialContext(credsFile)
     val ownerType = githubOwnerType.value
@@ -227,7 +227,7 @@ object GitHubPlugin extends AutoPlugin {
 
 
   /** Lists github package name (full w/org and bin versions) corresponding to the current project */
-  private def githubPackageNameTask: Initialize[Task[String]] = task {
+  private def githubPackageNameTask: Initialize[Task[String]] = Def.task {
     val projectModuleId: ModuleID = projectID.value
     val projectArtifact: Artifact = artifact.value
     val projectGroupId: String = organization.value

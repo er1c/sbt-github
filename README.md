@@ -79,6 +79,13 @@ To publish, you need to provide github credentials (user name and API key). Ther
 
 sbt-github will look for a credentials file under `~/.github/.credentials` used to authenticate publishing requests to github.
 
+```
+realm = GitHub API Realm
+host = api.github.com
+user = <github user>
+password = <api_token>
+```
+
 You can interactively set up or change the github credentials used by sbt anytime with
 
     > githubChangeCredentials

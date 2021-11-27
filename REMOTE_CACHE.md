@@ -50,8 +50,8 @@ sbt-github-remote-cache will look for a credentials file under `~/.github/.crede
 ```
 realm = GitHub API Realm
 host = api.github.com
-user = username
-token = password
+user = <github user>
+password = <api_token>
 ```
 
 2.  Properties

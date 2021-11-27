@@ -1,6 +1,17 @@
+# Artifacts can be pulled
+> clean
+> pullRemoteCache
+> compile
+
+# Artifacts can be pulled twice.
+> pullRemoteCache
+> compile
+
+# Artifacts can be pushed.
 > clean
 > compile
 > pushRemoteCache
 > compile
-> pullRemoteCache
-> compile
+
+# Artifacts can be pushed twice (enabled overriding)
+> pushRemoteCache

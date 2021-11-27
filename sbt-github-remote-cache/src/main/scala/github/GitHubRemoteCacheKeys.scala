@@ -29,6 +29,10 @@ object GitHubRemoteDefaults {
 
 trait InternalGitHubRemoteCacheKeys {
   val githubRemoteCacheRepo = taskKey[Option[GitHubRepo]]("GitHub repository: GitHubRepo.")
+  val githubRemoteCachePackageName = taskKey[String]("GitHub full package_name.")
+  val githubRemoteCachePushRemoteCacheResult = taskKey[Result[Seq[Unit]]]("Return the pushRemoteCache as a Result type.")
+  val githubRemoteCacheUnpublish = taskKey[Unit]("Unpublish the current remote cache.")
+  val githubRemoteCacheVersions = taskKey[Seq[String]]("Artifat version for remote cache.")
 }
 
 object InternalGitHubRemoteCacheKeys extends InternalGitHubRemoteCacheKeys {}

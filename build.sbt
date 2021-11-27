@@ -6,12 +6,10 @@ ThisBuild / licenses     := Seq("MIT" ->
   url(s"https://github.com/er1c/${name.value}/blob/${version.value}/LICENSE"))
 ThisBuild / description  := "package publisher for github.com"
 ThisBuild / developers   := List(
-  Developer("softprops", "Doug Tangren", "@softprops", url("https://github.com/softprops"))
+  Developer("ericpeters", "Eric Peters", "eric@peters.org", url("https://github.com/er1c"))
 )
 ThisBuild / scmInfo            := Some(ScmInfo(url(s"https://github.com/er1c/sbt-github"), s"git@github.com:er1c/sbt-github.git"))
 ThisBuild / scalaVersion       := "2.12.12"
-
-//ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / githubWorkflowOSes  := Seq("ubuntu-latest", "macos-latest", "windows-latest")
 ThisBuild / githubWorkflowEnv   := Map.empty
@@ -20,7 +18,10 @@ ThisBuild / githubWorkflowBuild := Seq(
   WorkflowStep.Run(
     commands = {
       List(
-        """|mkdir ~/.github && echo "
+        """|rm -rf ~/.ivy2/cache/io.github.er1c
+           |rm -rf ~/.ivy2/local/io.github.er1c
+           |mkdir ~/.github || true
+           |echo "
            |realm = GitHub API Realm
            |host = api.github.com
            |user = $GITHUB_USER
@@ -29,13 +30,15 @@ ThisBuild / githubWorkflowBuild := Seq(
            |""".stripMargin)
     },
     env = Map(
-      "GITHUB_USER" -> "${{ secrets.GITHUB_USER }}",
+      "GITHUB_USER" -> "${{ secrets.GH_USER }}",
       "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
-    ),
+      "GITHUB_REMOTE_CACHE_USER" -> "${{ secrets.GH_USER }}",
+      "GITHUB_REMOTE_CACHE_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"
+    )
   ),
   WorkflowStep.Sbt(
     commands = List("test", "scripted"),
-    env = Map.empty,
+    env = Map.empty
   )
 )
 
@@ -59,7 +62,6 @@ ThisBuild / githubWorkflowPublish := Seq(WorkflowStep.Sbt(
 
 // Update ci via `sbt githubWorkflowGenerate`
 
-
 val dispatchVersion = "1.2.0"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
@@ -79,8 +81,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
       "-Dgithub.user=username",
       "-Dgithub.pass=password",
       "-Dplugin.version=" + version.value,
-      "-Dorg.slf4j.simpleLogger.defaultLogLevel=debug",
-    ),
+      "-Dorg.slf4j.simpleLogger.defaultLogLevel=debug"
+    )
   ) ++ Seq(Compile, Test).flatMap(c =>
     c / console / scalacOptions --= unusedWarnings
   )
@@ -106,10 +108,10 @@ lazy val core =
         "com.eed3si9n"     %% "repatch-github" % "dispatch1.2.0_0.1.0",
         //"org.dispatchhttp" %% "dispatch-json4s-native" % "1.1.3",
         "org.slf4j" % "slf4j-nop" % "1.7.28", // https://github.com/sbt/sbt-bintray/issues/26
-        "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test,
+        "com.eed3si9n.verify" %% "verify" % "0.2.0" % Test
       ),
       testFrameworks += new TestFramework("verify.runner.Framework"),
-      resolvers += Resolver.sonatypeRepo("releases"),
+      resolvers += Resolver.sonatypeRepo("releases")
    )
 
 lazy val sbtGitHub =

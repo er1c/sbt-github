@@ -56,11 +56,16 @@ jobs:
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
       - env:
-          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_USER: ${{ secrets.GH_USER }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REMOTE_CACHE_USER: ${{ secrets.GH_USER }}
+          GITHUB_REMOTE_CACHE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          mkdir ~/.github && echo "
+          rm -rf ~/.ivy2/cache/io.github.er1c
+          rm -rf ~/.ivy2/local/io.github.er1c
+          mkdir ~/.github || true
+          echo "
           realm = GitHub API Realm
           host = api.github.com
           user = $GITHUB_USER

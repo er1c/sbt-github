@@ -1,4 +1,4 @@
-githubCredentialsFile := {
+githubCredentialsFile in Global := {
   val f = baseDirectory.value / "credentials"
   assert(f.isFile, s"didn't find credentials file: $f")
   f
