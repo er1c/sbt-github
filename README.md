@@ -4,7 +4,7 @@ sbt-github
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-github/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github)
 
 
-Forking/refactoring `sbt-github` for GitHub support
+Forking/refactoring [`sbt-bintray`](https://github.com/sbt/sbt-bintray) for GitHub support
 
 - Requirements: sbt `1.2.1` or later.
 
