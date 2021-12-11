@@ -6,13 +6,14 @@ requirements
 
 - an account on [github](https://github.com) (get one [here](https://github.com/signup))
 - a desire to build a zero-second build
+- sbt `1.4.2` or later
 
 setup
 -----
 
 Add the following to your sbt `project/plugins.sbt` file:
 
-[![GitHub Remote Cache Version](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-sbt-github-remote-cache_2.12_1.0/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github-remote-cache_2.12_1.0)
+[![GitHub Remote Cache Version](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-github-remote-cache/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github-remote-cache)
 
 ```scala
 addSbtPlugin("io.github.er1c" % "sbt-github-remote-cache" % "x.x.x")

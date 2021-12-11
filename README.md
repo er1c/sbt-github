@@ -1,8 +1,7 @@
 sbt-github
 ----------
 [![Continuous Integration](https://github.com/er1c/sbt-github/actions/workflows/ci.yml/badge.svg)](https://github.com/er1c/sbt-github/actions/workflows/ci.yml)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-github_2.12_1.0/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github_2.12_1.0)
-[![Scaladoc](https://javadoc.io/badge2/io.github.er1c/sbt-github_2.12_1.0/javadoc.svg?label=Scaladoc)](https://javadoc.io/doc/io.github.er1c/sbt-github_2.12_1.0)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.er1c/sbt-github/badge.svg)](https://search.maven.org/search?q=g:io.github.er1c%20AND%20a:sbt-github)
 
 
 Forking/refactoring `sbt-github` for GitHub support
@@ -14,7 +13,7 @@ See [remote caching](REMOTE_CACHE.md) for information about sbt-github-remote-ca
 ## Consuming or publishing?
 
 ```scala
-resolvers +=  "sbt-config-releases" at "https://maven.pkg.github.com/er1c/sbt-github"
+resolvers +=  "sbt-github-releases" at "https://maven.pkg.github.com/er1c/sbt-github"
 credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", "<github-user>", "<GITHUB_TOKEN>")
 ```
 
@@ -28,7 +27,7 @@ If you want to _publish_ to GitHub, read on.
 Add the following to your sbt `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("io.github.er1c" % "sbt-github" % "0.1.0")
+addSbtPlugin("io.github.er1c" % "sbt-github" % "0.2.0")
 ```
 
 ## Usage
