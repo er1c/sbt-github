@@ -1,8 +1,8 @@
 package github
 
-import sbt.{ AutoPlugin, Credentials, Global, Path, Resolver, Setting, Task, Tags }
+import sbt.{ AutoPlugin, Global, Path, Resolver, Setting, Task, Tags }
 import sbt.Classpaths.publishTask
-import sbt.Def.{ Initialize, setting, task, taskDyn }
+import sbt.Def.{ Initialize, setting, taskDyn }
 import sbt.Keys._
 import sbt._
 
@@ -13,7 +13,7 @@ object GitHubPlugin extends AutoPlugin {
   override def requires = sbt.plugins.JvmPlugin
   override def trigger = allRequirements
 
-  override def globalSettings: Seq[Setting[_]] = globalPublishSettings
+  override def globalSettings: Seq[Setting[_]] = githubCredentialSettings
   override def projectSettings: Seq[Setting[_]] = githubSettings
 
   lazy val isEnabledViaProp: Boolean = sys.props.get("sbt.sbt-github")
@@ -22,7 +22,10 @@ object GitHubPlugin extends AutoPlugin {
     case _ => false
   }
 
-  object autoImport extends GitHubKeys with GitHubResolverSyntax
+  object autoImport extends GitHubKeys with GitHubResolverSyntax {
+    type TokenSource = github.TokenSource
+    val TokenSource = github.TokenSource
+  }
 
   lazy val Git = Tags.Tag("git")
 
@@ -31,11 +34,11 @@ object GitHubPlugin extends AutoPlugin {
 
   def githubCommonSettings: Seq[Setting[_]] = Seq(
     githubChangeCredentials := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
+      val context = GitHubCredentialContext(githubCredentialsFile.value, githubTokenSource.value)
       GitHub.changeCredentials(context, streams.value.log)
     },
     githubWhoami := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
+      val context = GitHubCredentialContext(githubCredentialsFile.value, githubTokenSource.value)
       GitHub.whoami(GitHub.ensuredCredentials(context, streams.value.log), streams.value.log)
     }
   )
@@ -44,9 +47,22 @@ object GitHubPlugin extends AutoPlugin {
     githubPackageVersions := packageVersionsTask.value
   )
 
-  def globalPublishSettings: Seq[Setting[_]] = Seq(
+  def githubCredentialSettings: Seq[Setting[_]] = Seq(
     githubCredentialsFile in Global := Path.userHome / ".github" / ".credentials",
-    concurrentRestrictions in Global += Tags.exclusive(Git)
+    githubTokenSource in Global :=
+      TokenSource.Property("github.token") ||
+        TokenSource.Environment("GITHUB_TOKEN") ||
+        TokenSource.GitConfig("github.token"),
+    credentials ++= {
+      val credsFile = githubCredentialsFile.value
+      val src = githubTokenSource.value
+      val context = GitHubCredentialContext(credsFile, src)
+      GitHub.ensuredCredentials(context, sLog.value)
+        .map(credentials =>
+          Credentials("GitHub Package Registry", "maven.pkg.github.com", credentials.user, credentials.token)
+        ).toList
+    },
+    concurrentRestrictions in Global += Tags.exclusive(Git),
   )
 
   def githubPublishSettings: Seq[Setting[_]] = githubCommonSettings ++ Seq(
@@ -71,11 +87,11 @@ object GitHubPlugin extends AutoPlugin {
     githubOwnerType := GitHubOwnerType.User,
     githubRepository := GitHub.defaultMavenRepository,
     publishMavenStyle := true,
-    description in github := description.value,
+    description in sbtgithub := description.value,
     // note: publishTo may not have dependencies. therefore, we can not rely well on inline overrides
     // for inline credentials resolution we recommend defining githubCredentials _before_ mixing in the defaults
     // perhaps we should try overriding something in the publishConfig setting -- https://github.com/sbt/sbt-pgp/blob/master/pgp-plugin/src/main/scala/com/typesafe/sbt/pgp/PgpSettings.scala#L124-L131
-    publishTo in github := publishToGitHub.value,
+    publishTo in sbtgithub := publishToGitHub.value,
     githubResolverName := {
       val ret = for {
         owner <- githubOwner.?.value
@@ -84,11 +100,11 @@ object GitHubPlugin extends AutoPlugin {
 
       ret.getOrElse("github")
     },
-    resolvers in github := {
+    resolvers in sbtgithub := {
       for {
         owner <- (githubOwner.?.value: Option[String]).toSeq
         repo <- (githubRepository.?.value: Option[String]).toSeq
-        context = GitHubCredentialContext(githubCredentialsFile.value)
+        context = GitHubCredentialContext(githubCredentialsFile.value, githubTokenSource.value)
         resolver <- GitHub.buildResolvers(GitHub.ensuredCredentials(context, sLog.value),
           owner,
           repo,
@@ -97,7 +113,7 @@ object GitHubPlugin extends AutoPlugin {
         )
       } yield resolver
     },
-    credentials in github := {
+    credentials in sbtgithub := {
       val ret = for {
         repo <- githubRepo.value
       } yield Seq(Credentials("GitHub Package Registry", "maven.pkg.github.com", repo.credentials.user, repo.credentials.token))
@@ -105,7 +121,7 @@ object GitHubPlugin extends AutoPlugin {
       ret.getOrElse(Nil)
     },
     githubEnsureCredentials := {
-      val context = GitHubCredentialContext(githubCredentialsFile.value)
+      val context = GitHubCredentialContext(githubCredentialsFile.value, githubTokenSource.value)
       GitHub.ensuredCredentials(context, streams.value.log).getOrElse {
         sys.error(s"Missing github credentials. " +
           s"Either create a credentials file with the githubChangeCredentials task, " +
@@ -124,18 +140,18 @@ object GitHubPlugin extends AutoPlugin {
     },
   ) ++ Seq(
     resolvers ++= {
-      val rs = (resolvers in github).value
+      val rs = (resolvers in sbtgithub).value
       if (isEnabledViaProp) rs
       else Nil
     },
     credentials ++= {
-      val cs = (credentials in github).value
+      val cs = (credentials in sbtgithub).value
       if (isEnabledViaProp) cs
       else Nil
     },
     publishTo := {
       val old = publishTo.value
-      val p = (publishTo in github).value
+      val p = (publishTo in sbtgithub).value
       if (isEnabledViaProp) p
       else old
     },
@@ -188,8 +204,9 @@ object GitHubPlugin extends AutoPlugin {
   private def publishToGitHub: Initialize[Option[Resolver]] = setting {
     val publishEnabled = publishArtifact.value
     val credsFile = githubCredentialsFile.value
+    val tokenSource = githubTokenSource.value
     val ownerType = githubOwnerType.value
-    val context = GitHubCredentialContext(credsFile)
+    val context = GitHubCredentialContext(credsFile, tokenSource)
 
     if (publishEnabled) {
       for {
@@ -208,7 +225,8 @@ object GitHubPlugin extends AutoPlugin {
   /** Lists versions of github packages corresponding to the current project */
   private def packageVersionsTask: Initialize[Task[Seq[String]]] = Def.taskDyn {
     val credsFile = githubCredentialsFile.value
-    val context = GitHubCredentialContext(credsFile)
+    val tokenSource = githubTokenSource.value
+    val context = GitHubCredentialContext(credsFile, tokenSource)
     val ownerType = githubOwnerType.value
 
     Def.task {

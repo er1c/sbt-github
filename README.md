@@ -10,24 +10,14 @@ Forking/refactoring [`sbt-bintray`](https://github.com/sbt/sbt-bintray) for GitH
 
 See [remote caching](REMOTE_CACHE.md) for information about sbt-github-remote-cache.
 
-## Consuming or publishing?
-
-```scala
-resolvers +=  "sbt-github-releases" at "https://maven.pkg.github.com/er1c/sbt-github"
-credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", "<github-user>", "<GITHUB_TOKEN>")
-```
-
-If you want to _publish_ to GitHub, read on.
-
 ## Install
 
 ### What you need
 
-
 Add the following to your sbt `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("io.github.er1c" % "sbt-github" % "0.2.0")
+addSbtPlugin("io.github.er1c" % "sbt-github" % "0.3.0")
 ```
 
 ## Usage
@@ -36,6 +26,14 @@ Note that when specifying `sbt-github` settings in `project/*.scala` files (as o
 
 ```scala
 import github.GitHubPluginKeys._
+```
+
+### Reading Packages
+
+```scala
+resolvers += "github-packages-tests" at "https://maven.pkg.github.com/er1c/github-packages-tests"
+githubTokenSource := TokenSource.Environment("GITHUB_TOKEN") // optional since this is in the default chain
+libraryDependencies += "com.example" % "java-project-example" % "0.1.0"
 ```
 
 ### GitHub User
@@ -74,6 +72,17 @@ At any time you can check who you will be authenticated as with the `githubWhoam
 
 To publish, you need to provide github credentials (user name and API key). There are three ways to set them up: credential file, properties, and environment variables.
 
+The default chain is:
+
+```scala
+    githubTokenSource :=
+      TokenSource.Property("github.token") ||
+        TokenSource.Environment("GITHUB_TOKEN") ||
+        TokenSource.GitConfig("github.token"),
+```
+
+With a fall back to the `~/.github/.credentials` file.
+
 1. Credentials file
 
 sbt-github will look for a credentials file under `~/.github/.credentials` used to authenticate publishing requests to github.
@@ -95,11 +104,26 @@ Note you will need to `reload` your project afterwards which will reset your `pu
 
 You can pass the user and pass as JVM properties when starting sbt:
 
-    sbt -Dgithub.user=yourgithubUser -Dgithub.pass=yourgithubPass
+    sbt -Dgithub.token=yourgithubtoken
     
 3. Environment variables
 
-sbt-github will look for github user and pass in the environment variables `github_USER` and  `github_PASS`.
+sbt-github will look for github token in the environment variable `GITHUB_TOKEN`.
+
+3. Git Config
+
+sbt-github will look in git config in the path `github.token`.
+
+4. Alternatively, you can also specify the credentials in your `~/.sbt/1.0/credentials.sbt`, and use file:
+
+```scala
+credentials +=
+  Credentials(
+    "GitHub Package Registry",
+    "maven.pkg.github.com",
+    "USERNAME",
+    "TOKEN")
+```
 
 #### github organization
 

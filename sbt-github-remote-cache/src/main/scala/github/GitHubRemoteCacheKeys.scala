@@ -7,6 +7,7 @@ trait GitHubRemoteCacheKeys {
   val githubRemoteCache = taskKey[String]("sbt-github-remote-cache is an interface for the github package service")
 
   val githubRemoteCacheCredentialsFile = settingKey[File]("File containing github api credentials")
+  val githubRemoteCacheTokenSource = settingKey[TokenSource]("Where to get the API token used in publication (defaults to github.token property, then GITHUB_TOKEN environment, then github.token in the git config)")
 
   val githubRemoteCacheOwner = settingKey[String]("GitHub user or organization name to push to")
   val githubRemoteCacheOwnerType = settingKey[GitHubOwnerType]("GitHub owner type (GitHubOwnerType.User or GitHubOwnerType.Org), default GitHubOwnerType.User.")

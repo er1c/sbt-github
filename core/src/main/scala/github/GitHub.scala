@@ -1,6 +1,8 @@
 package github
 
+import github.TokenSource.resolveTokenSource
 import sbt._
+
 import scala.collection.concurrent.TrieMap
 
 object GitHub {
@@ -45,28 +47,9 @@ object GitHub {
     context: GitHubCredentialContext,
     log: sbt.Logger
   ): Option[GitHubCredentials] = {
-    propsCredentials(context, log)
-      .orElse(envCredentials(context, log))
+    resolveTokenSource(context.tokenSource).map(token => GitHubCredentials("_", token)) // GH Ignores user just use token
       .orElse(GitHubCredentials.read(context.credsFile, log))
   }
-
-  private def propsCredentials(context: GitHubCredentialContext, log: sbt.Logger): Option[GitHubCredentials] =
-    for {
-      name <- sys.props.get(context.userProp)
-      pass <- sys.props.get(context.tokenProp)
-    } yield {
-      log.info(s"Using Property-based credentials.")
-      GitHubCredentials(name, pass)
-    }
-
-  private def envCredentials(context: GitHubCredentialContext, log: sbt.Logger): Option[GitHubCredentials] =
-    for {
-      name <- sys.env.get(context.userEnv)
-      pass <- sys.env.get(context.tokenEnv)
-    } yield {
-      log.info(s"Using Environment-based credentials.")
-      GitHubCredentials(name, pass)
-    }
 
   private def saveGitHubCredentials(to: File)(creds: (String, String), log: Logger): Unit = {
     log.info(s"saving credentials to $to")

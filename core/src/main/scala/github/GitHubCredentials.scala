@@ -4,6 +4,7 @@ import sbt._
 import java.io.File
 
 case class GitHubCredentials(user: String, token: String) {
+  def this(token: String) = this("_", token) // GitHub doesn't care about user
   override def toString = s"GitHubCredentials($user, ${"x"*token.size})"
 }
 

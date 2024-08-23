@@ -24,21 +24,21 @@ ThisBuild / githubWorkflowBuild := Seq(
            |echo "
            |realm = GitHub API Realm
            |host = api.github.com
-           |user = $GITHUB_USER
-           |password = $GITHUB_TOKEN
+           |user = ${{ secrets.GH_USER }}
+           |password = ${{ secrets.GITHUB_TOKEN }}
            |" >> ~/.github/.credentials
            |""".stripMargin)
     },
-    env = Map(
-      "GITHUB_USER" -> "${{ secrets.GH_USER }}",
-      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}",
-      "GITHUB_REMOTE_CACHE_USER" -> "${{ secrets.GH_USER }}",
-      "GITHUB_REMOTE_CACHE_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"
-    )
+//    env = Map(
+//      "GITHUB_USER" -> "${{ secrets.GH_USER }}",
+//      "GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"
+//    )
   ),
   WorkflowStep.Sbt(
     commands = List("test", "scripted"),
-    env = Map.empty
+    env = Map(
+      "GITHUB_TOKEN_FOR_ENV_TEST" -> "${{ secrets.GITHUB_TOKEN }}",
+    )
   )
 )
 
