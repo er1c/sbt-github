@@ -15,8 +15,12 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
 
   override lazy val globalSettings: Seq[Setting[_]] = Seq(
     githubRemoteCacheCredentialsFile := Path.userHome / ".github" / ".credentials",
+    githubRemoteCacheTokenSource :=
+      TokenSource.Property("github.token") ||
+        TokenSource.Environment("GITHUB_TOKEN") ||
+        TokenSource.GitConfig("github.token"),
     githubRemoteCacheEnsureCredentials := {
-      val context = GitHubCredentialContext(githubRemoteCacheCredentialsFile.value)
+      val context = GitHubCredentialContext(githubRemoteCacheCredentialsFile.value, githubRemoteCacheTokenSource.value)
       GitHub.ensuredCredentials(context, streams.value.log).getOrElse {
         sys.error(s"Missing github credentials. " +
           s"Either create a credentials file with the githubChangeCredentials task, " +
@@ -107,8 +111,9 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
 
   private def publishToGitHubSetting: Def.Initialize[Option[Resolver]] = Def.setting {
     val credsFile = githubRemoteCacheCredentialsFile.value
+    val tokenSource = githubRemoteCacheTokenSource.value
     val ownerType = githubRemoteCacheOwnerType.value
-    val context = GitHubCredentialContext(credsFile)
+    val context = GitHubCredentialContext(credsFile, tokenSource)
 
     for {
       owner <- githubRemoteCacheOwner.?.value
@@ -182,8 +187,9 @@ object GitHubRemoteCachePlugin extends AutoPlugin {
 
   def packageCleanOldVersionsTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
     val credsFile = githubRemoteCacheCredentialsFile.value
+    val tokenSource = githubRemoteCacheTokenSource.value
     val ownerType = githubRemoteCacheOwnerType.value
-    val context = GitHubCredentialContext.remoteCache(credsFile)
+    val context = GitHubCredentialContext(credsFile, tokenSource)
     val s = streams.value
     val min = githubRemoteCacheMinimum.value
     val ttl = githubRemoteCacheTtl.value

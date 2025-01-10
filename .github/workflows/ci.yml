@@ -55,12 +55,7 @@ jobs:
         shell: bash
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
-      - env:
-          GITHUB_USER: ${{ secrets.GH_USER }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REMOTE_CACHE_USER: ${{ secrets.GH_USER }}
-          GITHUB_REMOTE_CACHE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
+      - shell: bash
         run: |
           rm -rf ~/.ivy2/cache/io.github.er1c
           rm -rf ~/.ivy2/local/io.github.er1c
@@ -68,12 +63,14 @@ jobs:
           echo "
           realm = GitHub API Realm
           host = api.github.com
-          user = $GITHUB_USER
-          password = $GITHUB_TOKEN
+          user = ${{ secrets.GH_USER }}
+          password = ${{ secrets.GITHUB_TOKEN }}
           " >> ~/.github/.credentials
 
       
-      - shell: bash
+      - env:
+          GITHUB_TOKEN_FOR_ENV_TEST: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: sbt ++${{ matrix.scala }} test scripted
 
       - name: Compress target directories

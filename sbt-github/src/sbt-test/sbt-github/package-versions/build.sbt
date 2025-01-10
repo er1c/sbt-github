@@ -2,7 +2,7 @@ import sbt.util
 
 import _root_.github.InternalGitHubKeys._
 
-logLevel := util.Level.Debug
+//logLevel := util.Level.Debug
 
 lazy val aggregatorIDs = Seq(
   "javaProjectExample",

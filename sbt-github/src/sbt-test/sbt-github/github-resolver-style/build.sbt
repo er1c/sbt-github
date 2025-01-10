@@ -12,7 +12,7 @@ lazy val mavenStyle = (project in file("maven-style"))
     githubOwner := "tinyrick",
     githubRepository := "evilmorty",
     TaskKey[Unit]("check") := {
-      assert((github / resolvers).value.filter(_.name.equals("github-tinyrick-evilmorty")).head.isInstanceOf[MavenRepository],
+      assert((sbtgithub / resolvers).value.filter(_.name.equals("github-tinyrick-evilmorty")).head.isInstanceOf[MavenRepository],
         "A maven style project should have a maven repository as it default resolver"
       )
     }

@@ -3,7 +3,7 @@ package github
 import sbt._
 
 trait GitHubKeys {
-  val github = taskKey[String]("sbt-github is an interface for the github package service")
+  val sbtgithub = taskKey[String]("sbt-github is an interface for the github package service")
 
   val githubOwner = settingKey[String]("GitHub user or organization name to publish to.")
   val githubRepository = settingKey[String]("GitHub repository to publish to.")
@@ -12,6 +12,7 @@ trait GitHubKeys {
 
   val githubResolverName = settingKey[String]("GitHub resolver name, default github-{githubOwner}-{githubRepository}.")
   val githubCredentialsFile = settingKey[File]("File containing github api credentials")
+  val githubTokenSource = settingKey[TokenSource]("Where to get the API token used in publication (defaults to github.token property, then GITHUB_TOKEN environment, then github.token in the git config)")
   val githubPackageVersions = taskKey[Seq[String]]("List github versions for the current package")
 
   val githubChangeCredentials = taskKey[Unit]("Change your current github credentials")
